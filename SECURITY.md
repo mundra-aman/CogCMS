@@ -4,7 +4,7 @@
 
 Do not disclose vulnerability details in a public issue, discussion, pull request or attached log. This includes suspected cross-site data access, authentication bypass, unsafe content rendering and exposed credentials.
 
-**Release preparation: a private reporting contact must be confirmed before publication.** GitHub private vulnerability reporting has not yet been enabled for this repository. Maintainers must replace this paragraph with a working private reporting channel before the initial source release.
+Use [GitHub's private vulnerability reporting form](https://github.com/mundra-aman/CogCMS/security/advisories/new), also available through **Security → Advisories → Report a vulnerability**. If the form is unavailable, do not post the details publicly. You may open an issue titled **Enable private vulnerability reporting** containing only that request; wait for the private form before sending the report. Repository administrators must enable private vulnerability reporting and monitor its notifications.
 
 A useful private report includes the affected commit or release, a minimal reproduction using fictional data, the expected and observed behavior, likely impact, and relevant environment details. Do not send live credentials or another person's data. Test only systems and data you own or have explicit permission to test.
 
