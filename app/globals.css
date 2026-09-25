@@ -1,0 +1,42 @@
+@import './styles/tailwind.css';
+@import './styles/fonts.css';
+@import './styles/theme.css';
+
+html {
+  scroll-behavior: smooth;
+}
+
+.cms-workspace :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #c2410c;
+  outline-offset: 3px;
+}
+
+.cms-workspace :where(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Blog divider — published render (<hr> emitted by the Quill DividerBlot) */
+.prose hr,
+hr[data-divider] {
+  display: block;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 2rem 0;
+  width: 100%;
+}
+
+/* Editor preview — <hr> rendered inside the Quill bubble editor */
+.ql-editor hr {
+  display: block;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.25rem 0;
+  width: 100%;
+  cursor: default;
+}

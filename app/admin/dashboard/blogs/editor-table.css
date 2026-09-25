@@ -1,0 +1,46 @@
+/* Editor-canvas table styling — previews the published blog table look
+   (header row, warm zebra striping, soft borders) inside the Quill editor.
+   Quill emits all-<td> tables with its own default borders, so these rules
+   use !important to override them. Scoped to .ql-editor. */
+
+.ql-editor table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.5rem 0 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.ql-editor table td {
+  border: 0 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  padding: 0.7rem 1.1rem !important;
+  color: #4b4b4b !important;
+  vertical-align: top !important;
+}
+
+/* First row = header */
+.ql-editor table tr:first-child td {
+  border-top: 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12) !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  background: transparent !important;
+}
+
+/* Warm zebra striping on alternate data rows */
+.ql-editor table tr:not(:first-child):nth-child(even) td {
+  background: #fbf7f1 !important;
+}
+
+/* Emphasise the first column of data rows */
+.ql-editor table tr:not(:first-child) td:first-child {
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+}
+
+/* Light vertical separators between columns */
+.ql-editor table td:not(:first-child) {
+  border-left: 1px solid rgba(0, 0, 0, 0.06) !important;
+}

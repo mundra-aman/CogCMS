@@ -1,0 +1,174 @@
+/* Blog content tables — rounded card, header row, subtle warm zebra striping.
+   Quill emits <table><tbody><tr><td> with no <thead>/<th>, so the first row is
+   treated as the header. overflow-x:auto both enables horizontal scroll on
+   narrow screens and clips the rounded corners. */
+.blog-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 2rem 0;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.blog-table-scroll > table {
+  margin: 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.blog-table-scroll th,
+.blog-table-scroll td {
+  padding: 0.85rem 1.3rem;
+  text-align: left;
+  vertical-align: top;
+  color: #4b4b4b;
+}
+/* Header = first row (or a real <thead>/<th> if present) */
+.blog-table-scroll thead th,
+.blog-table-scroll tr:first-child td {
+  padding-top: 0.95rem;
+  padding-bottom: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  background: transparent;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+/* Data rows: separators + warm zebra striping */
+.blog-table-scroll tr:not(:first-child) td {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+.blog-table-scroll tr:not(:first-child):nth-child(even) td {
+  background: #fbf7f1;
+}
+/* Emphasise the first column of data rows */
+.blog-table-scroll tr:not(:first-child) td:first-child {
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+/* Light vertical separators between columns */
+.blog-table-scroll th:not(:first-child),
+.blog-table-scroll td:not(:first-child) {
+  border-left: 1px solid rgba(0, 0, 0, 0.055);
+}
+
+.blog-code { margin: 2rem 0; border: 1px solid rgba(0,0,0,0.08); border-radius: 0.75rem; overflow: hidden; }
+.blog-code__header { display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.9rem; background: #f6f6f6; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.blog-code__lang { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #888; }
+.copy-code { font-size: 11px; font-weight: 500; color: #888; background: transparent;
+  border: 1px solid rgba(0,0,0,0.12); border-radius: 0.4rem; padding: 0.2rem 0.6rem; cursor: pointer; }
+.copy-code:hover { color: #FF751F; border-color: #FF751F; }
+.blog-code__body pre.shiki { margin: 0; padding: 1rem 1.1rem; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+
+/* Borderless list — sits in the sticky left rail on desktop, inline on mobile. */
+.blog-toc { margin: 0 0 2rem; }
+.blog-toc__title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9a9a9a; margin-bottom: 0.85rem; }
+.blog-toc a { display: block; color: #6b6b6b; text-decoration: none; padding: 0.32rem 0; font-size: 13.5px; line-height: 1.45; transition: color 0.15s; }
+.blog-toc a:hover { color: #FF751F; }
+.blog-toc a[data-level="3"] { padding-left: 0.9rem; font-size: 13px; }
+/* Active section while scrolling (scroll-spy) */
+.blog-toc a[aria-current="true"] { color: #FF751F; font-weight: 600; }
+
+/* Offset anchor jumps so a heading isn't hidden under the fixed navbar. */
+.prose h2[id], .prose h3[id] { scroll-margin-top: 7rem; }
+
+/* ── Blog graphics (stat cards / callout / comparison) ───────────────────────
+   Rendered by lib/blog-content/graphics/render.ts; animated by GraphicAnimations. */
+.blog-graphic-view { margin: 2.5rem 0; }
+
+/* Stat cards */
+.blog-graphic__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+.blog-graphic__stat {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 1rem;
+  padding: 2rem 1.6rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.blog-graphic__num {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #1a1a1a;
+}
+.blog-graphic__prefix, .blog-graphic__suffix { font-weight: 800; }
+.blog-graphic__label {
+  margin-top: 0.85rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.blog-graphic__bar {
+  width: 64px;
+  height: 4px;
+  border-radius: 2px;
+  margin: 1.1rem auto 0;
+}
+.blog-graphic__caption {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #6b6b6b;
+}
+
+/* Callout / quote-highlight */
+.blog-graphic__callout {
+  border-left: 4px solid var(--accent, #ff751f);
+  background: #fbf7f1;
+  border-radius: 0 0.9rem 0.9rem 0;
+  padding: 1.5rem 1.75rem;
+}
+.blog-graphic__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #ff751f);
+  margin-bottom: 0.5rem;
+}
+.blog-graphic__callout-text { margin: 0; font-size: 1.15rem; line-height: 1.6; color: #1a1a1a; }
+.blog-graphic__callout--quote .blog-graphic__callout-text { font-style: italic; font-size: 1.25rem; }
+.blog-graphic__attribution { margin-top: 0.75rem; font-size: 0.9rem; color: #6b6b6b; }
+.blog-graphic__attribution::before { content: '— '; }
+
+/* Comparison */
+.blog-graphic__comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.blog-graphic__col {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-top: 3px solid var(--accent, #ff751f);
+  border-radius: 0.9rem;
+  padding: 1.5rem;
+}
+.blog-graphic__col-heading { font-weight: 600; font-size: 1.05rem; color: #1a1a1a; margin-bottom: 0.85rem; }
+.blog-graphic__col-points { list-style: none; padding: 0; margin: 0; }
+.blog-graphic__col-points li { position: relative; padding: 0.4rem 0 0.4rem 1.4rem; color: #4b4b4b; }
+.blog-graphic__col-points li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent, #ff751f);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .blog-graphic__comparison { grid-template-columns: 1fr; }
+}
+
+/* Animation initial state — applied ONLY once motion is live (set by
+   GraphicAnimations), so no-JS / load-failure / reduced-motion show the final state. */
+.graphics-anim-ready .blog-graphic-view[data-reveal] .blog-graphic__stat,
+.graphics-anim-ready .blog-graphic-view[data-reveal] .blog-graphic__col,
+.graphics-anim-ready .blog-graphic-view[data-reveal] .blog-graphic__callout {
+  opacity: 0;
+}
