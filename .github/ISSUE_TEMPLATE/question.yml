@@ -1,0 +1,17 @@
+name: Setup or usage question
+description: Ask about running or integrating your own CogCMS installation
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Describe what you are trying to do and the documentation you followed.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and attempted steps
+      description: Include the commit, Node and MongoDB versions, OS, command and redacted error. Never include credentials or customer data.
+    validations:
+      required: true

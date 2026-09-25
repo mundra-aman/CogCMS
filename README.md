@@ -8,6 +8,15 @@ The CMS includes site-scoped users and API keys, editorial previews, stored blog
 
 Use Node 22 (`.nvmrc`), npm, **MongoDB 8.2.5** and MongoDB Shell (`mongosh`) for this local recipe. The CMS requires a replica set for transactional paths. Media upload is optional and disabled when the three `S3_*` values are unset.
 
+Get the source and enter the project directory:
+
+```sh
+git clone https://github.com/mundra-aman/CogCMS.git
+cd CogCMS
+```
+
+Then complete these steps from that directory:
+
 1. Create an empty local data directory and start MongoDB with `mongod --replSet rs0 --bind_ip 127.0.0.1 --port 27017 --dbpath <empty-local-directory>`. In a second terminal, connect with `mongosh mongodb://localhost:27017` and run `rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})` once. Do not point these commands at a shared database.
 2. Run `npm ci`, copy `.env.example` to `.env`, and set a new local `CMS_JWT_SECRET` (at least 32 characters) and local `CMS_SEED_ADMIN_PASSWORD` (at least 12 characters). The example email is fictional. Keep `MONGODB_DB_NAME=cms_public_demo` and `MONGODB_URI=mongodb://localhost:27017/?replicaSet=rs0`.
 3. Run `npm run seed:admin`, `npm run ensure:indexes`, then `npm run seed:demo`. The demo seed refuses remote MongoDB targets, any database name other than `cms_public_demo`, and an existing site or blog. It creates two fictional sites and 48 blogs; it never overwrites existing records.
@@ -27,5 +36,14 @@ Run `npm run typecheck`, `npm test`, and `npm run build` sequentially. Unit and 
 - Keep credentials out of the repository. `.env.example` contains placeholders only.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) to contribute. The optional [assignment](ASSIGNMENT.md) provides a bounded example contribution; it does not define the scope of the product.
+
+## Community and maintenance
+
+- [Support](SUPPORT.md): questions, bug reports and feature requests.
+- [Code of Conduct](CODE_OF_CONDUCT.md): participation and reporting concerns.
+- [Security policy](SECURITY.md): private vulnerability reporting and maintenance scope.
+- [Changelog](CHANGELOG.md): release status and notable changes.
+
+This is the initial public-source preparation. There are no published stability or long-term support guarantees; review the deployment guide before running an installation with real data.
 
 Licensed under the [MIT License](LICENSE), copyright 2026 Aman Mundra. See [source provenance](PROVENANCE.md) for the project's origins. This source distribution includes no private installation history or customer dataset.
