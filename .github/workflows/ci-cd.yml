@@ -1,0 +1,29 @@
+name: Repository contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate repository contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required repository files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in README.md AGENTS.md CLAUDE.md docs/ARCHITECTURE.md docs/DEPLOYMENT.md; do
+            test -s "$path"
+          done
+          if git grep -nE '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|ghp_[A-Za-z0-9]{20,})' -- . ':!*.lock'; then
+            echo "::error::Potential credential material detected."
+            exit 1
+          fi

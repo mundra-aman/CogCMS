@@ -1,0 +1,102 @@
+/* Editor-canvas typography — mirrors the published article body so the writing
+   surface shows what readers see. The public render is `prose prose-lg` + brand
+   tokens (app/blogs/[slug]/page.tsx) plus block styles in app/blog-enhancements.css.
+   These rules reproduce that look inside Quill's editing area.
+
+   Scope `.editor-canvas .ql-editor` (specificity 0,2,1) beats Quill's bubble-theme
+   defaults (0,1,1) without needing !important. Tables are owned by editor-table.css
+   (which already mirrors the published table card) — intentionally not restyled here.
+   Single source of truth for canvas typography; keep in sync with the public render. */
+
+.editor-canvas .ql-editor {
+  /* Poppins (var --font-sans is rebound for this segment) — directly styling
+     .ql-editor beats Quill bubble's .ql-container { font-family: Helvetica }. */
+  font-family: var(--font-sans), sans-serif;
+  font-size: 18px;
+  line-height: 1.625;
+  color: #242424;
+  font-weight: 400;
+}
+
+/* Headings — match prose-h1:text-2xl / h2:text-xl / h3:text-lg, ink, semibold */
+.editor-canvas .ql-editor h1,
+.editor-canvas .ql-editor h2,
+.editor-canvas .ql-editor h3 {
+  color: #1a1a1a;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.editor-canvas .ql-editor h1 { font-size: 1.5rem; margin: 0 0 0.75rem; }
+.editor-canvas .ql-editor h2 { font-size: 1.25rem; margin: 2.25rem 0 0.75rem; }
+.editor-canvas .ql-editor h3 { font-size: 1.125rem; margin: 1.75rem 0 0.5rem; }
+
+/* Paragraphs — prose-p:my-4 */
+.editor-canvas .ql-editor p { margin: 1rem 0; }
+
+/* Lists */
+.editor-canvas .ql-editor ul { list-style: disc; padding-left: 1.75rem; margin: 1rem 0; }
+.editor-canvas .ql-editor ol { list-style: decimal; padding-left: 1.75rem; margin: 1rem 0; }
+.editor-canvas .ql-editor li { margin: 0.4rem 0; }
+
+/* Links — brand orange (the published prose-a token); was Quill/editor green */
+.editor-canvas .ql-editor a {
+  color: #FF751F;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.editor-canvas .ql-editor a:hover { color: #ea580c; }
+
+/* Blockquote — prose default look */
+.editor-canvas .ql-editor blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1.6rem 0;
+  font-style: italic;
+  color: #374151;
+}
+
+/* Images — prose-img:rounded-2xl + shadow-sm; keep the editor selection outline */
+.editor-canvas .ql-editor img {
+  display: block;
+  margin: 2.5rem auto;
+  max-width: 100%;
+  height: auto;
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.editor-canvas .ql-editor img.ql-selected {
+  outline: 2px solid #FF751F;
+  outline-offset: 2px;
+}
+
+/* Video embeds */
+.editor-canvas .ql-editor iframe {
+  display: block;
+  margin: 2.5rem auto;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 0.75rem;
+}
+
+/* Divider */
+.editor-canvas .ql-editor hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Code blocks — mirror .blog-code__body from blog-enhancements.css. Quill emits a
+   raw <pre>; render-time Shiki token colours and the language header/copy bar are
+   not reproducible live, so this matches the frame only. */
+.editor-canvas .ql-editor pre {
+  margin: 2rem 0;
+  padding: 1rem 1.1rem;
+  background: #f6f6f6;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+}

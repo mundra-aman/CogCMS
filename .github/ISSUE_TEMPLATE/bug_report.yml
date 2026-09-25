@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible CMS problem
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe actual and expected behavior. Do not include credentials or customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Use fictional data and include the relevant error with secrets removed.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: CMS commit or release, Node/MongoDB versions, operating system and hosting method.
