@@ -28,6 +28,60 @@ To reset, stop the app and verify that the target is your disposable local `cms_
 
 Run `npm run typecheck`, `npm test`, and `npm run build` sequentially. Unit and integration tests use a separate temporary MongoDB replica set. If its binary is not cached, `mongodb-memory-server` may download one. Report any setup or baseline failure separately from your changes.
 
+## Assignment Feature: Admin Activity Log
+
+### Feature overview
+
+This contribution adds a site-scoped Admin Activity Log to CogCMS. It records CREATE, UPDATE and DELETE operations performed on blog posts, including the user, action, affected content and
+timestamp.
+
+The feature provides a lightweight audit trail for multi-user content management without changing the existing editorial workflow.
+
+### Architecture and data flow
+
+Admin blog action
+→ Blog API route
+→ Blog mutation
+→ `logActivity()` helper
+→ `ActivityLog` Mongoose model
+→ MongoDB `activity_logs` collection
+→ Activity Log admin page
+
+Each record stores the user ID, name and email, action, resource type, resource ID, resource title, site ID and creation timestamp.
+
+### Design decisions
+
+- **Site-scoped records:** Activity is filtered by the active site to match CogCMS's multi-site architecture.
+- **Snapshot information:** User details and content title are stored with each event so historical entries remain readable after later edits.
+- **Dedicated collection:** Audit data is kept separate from editorial content.
+- **Indexed queries:** `siteId` and `createdAt` are indexed to support recent site activity queries.
+- **Synchronous logging:** The mutation waits for the audit entry to be created, providing immediate audit consistency.
+
+### Admin usage
+
+1. Sign in to the admin dashboard.
+2. Select an active site.
+3. Open **Activity Log** from the Content navigation.
+4. Create, edit or delete a blog.
+5. Return to Activity Log to view the recorded event.
+
+The page displays the latest 100 records with date/time, user, action, content type and content title.
+
+### Testing
+
+The activity logging helper has a dedicated unit test. The feature was also manually verified through the admin UI for:
+
+- Blog creation → `CREATE`
+- Blog update → `UPDATE`
+- Blog deletion → `DELETE`
+
+The complete existing test suite passes with 420 tests.
+
+### Limitations and future work
+
+The current implementation intentionally focuses on blog mutations. Future improvements could include activity tracking for other content types, filtering, pagination, detailed event views,
+export, retention policies and dedicated PUBLISH/UNPUBLISH event types.
+
 ## Boundaries
 
 - Admin routes use a login session and active-site selection. `/api/v1` uses site-scoped keys and exposes published content only.

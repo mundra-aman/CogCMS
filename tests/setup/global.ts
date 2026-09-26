@@ -12,10 +12,13 @@ export async function setup(project: TestProject): Promise<void> {
   const downloadDir = path.join(testRoot, 'binaries');
   await Promise.all([mkdir(dbPath, { recursive: true }), mkdir(downloadDir, { recursive: true })]);
   server = await MongoMemoryReplSet.create({
-    binary: { downloadDir },
-    instanceOpts: [{ dbPath }],
-    replSet: { count: 1 },
-  });
+  binary: {
+    downloadDir,
+    version: '7.0.14',
+  },
+  instanceOpts: [{ dbPath }],
+  replSet: { count: 1 },
+});
   project.provide('mongoUri', server.getUri());
 }
 
