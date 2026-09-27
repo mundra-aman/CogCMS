@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { BlogHistoryPanel } from '@/components/admin/blog-history-panel';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.bubble.css';
 import '../editor-table.css';
@@ -452,6 +453,9 @@ function EditorForm() {
   const [isSeoOpen, setIsSeoOpen] = useState(false);
   const [isStructuredOpen, setIsStructuredOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  // Bumped after a restore so the editor re-fetches the post.
+  const [reloadKey, setReloadKey] = useState(0);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
   const [graphicModal, setGraphicModal] = useState<{
     config: GraphicConfig | null;
@@ -538,7 +542,7 @@ function EditorForm() {
       })
       .catch(console.error)
       .finally(() => setLoadingData(false));
-  }, [editSlug]);
+  }, [editSlug, reloadKey]);
 
   useEffect(() => {
     if (!editSlug) {
@@ -1007,6 +1011,18 @@ function EditorForm() {
               </>
             )}
           </div>
+
+          {editSlug ? (
+            <button
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="h-8 px-3 rounded-lg border text-[12px] text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"
+              style={{ borderColor: 'rgba(0,0,0,0.08)', fontWeight: 500 }}
+              title="Version history"
+            >
+              History
+            </button>
+          ) : null}
 
           {/* Shortcuts button */}
           <button
@@ -1601,6 +1617,17 @@ function EditorForm() {
 
       {/* ── Keyboard shortcuts modal ───────────── */}
       {showShortcuts && <ShortcutsPanel onClose={() => setShowShortcuts(false)} />}
+      {showHistory && editSlug ? (
+        <BlogHistoryPanel
+          slug={editSlug}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onClose={() => setShowHistory(false)}
+          onRestored={() => {
+            setShowHistory(false);
+            setReloadKey((key) => key + 1);
+          }}
+        />
+      ) : null}
       {graphicModal && (
         <GraphicEditorModal
           initial={graphicModal.config}

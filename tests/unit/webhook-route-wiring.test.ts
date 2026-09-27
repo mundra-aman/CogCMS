@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 const mutationRoutes = [
   'app/api/admin/blogs/route.ts',
   'app/api/admin/blogs/[slug]/route.ts',
+  'app/api/admin/blogs/[slug]/revisions/[revisionId]/restore/route.ts',
   'app/api/admin/authors/route.ts',
   'app/api/admin/authors/[slug]/route.ts',
   'app/api/admin/faqs/route.ts',
