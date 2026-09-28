@@ -9,6 +9,7 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { deleteBlogRevisions, updateBlogWithRevision } from '@/lib/blog-revisions/store';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -48,11 +49,14 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
   }
   if (parsed.data.status === 'publish' && !existing.publishedAt) update.publishedAt = new Date();
 
-  const blog = await Blog.findOneAndUpdate(
-    { _id: existing._id, siteId: site.id },
-    { $set: update },
-    { returnDocument: 'after', runValidators: true },
-  ).exec();
+  // Keeps the version being replaced so it can be viewed and restored later.
+  const { blog } = await updateBlogWithRevision({
+    existing,
+    siteId: site.id,
+    update,
+    userId: user.id,
+    reason: 'edit',
+  });
   if (!blog) throw notFound('Blog');
   invalidateRelatedPosts(site.id);
   const eventType = deliveryEventType(existing.status, blog.status);
@@ -72,6 +76,8 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
   await connectToDatabase();
   const blog = await Blog.findOneAndDelete({ slug, siteId: site.id }).exec();
   if (!blog) throw notFound('Blog');
+  // History belongs to the post; without it the revisions could never be reached again.
+  await deleteBlogRevisions(site.id, blog._id);
   invalidateRelatedPosts(site.id);
   if (blog.status === 'publish') {
     notifySiteWebhook(site.id, {

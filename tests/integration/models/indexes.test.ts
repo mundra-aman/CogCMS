@@ -7,6 +7,7 @@ import Blog from '@/models/Blog';
 import NewsletterSubscriber from '@/models/NewsletterSubscriber';
 import ReleaseNote from '@/models/ReleaseNote';
 import Whitepaper from '@/models/Whitepaper';
+import BlogRevision from '@/models/BlogRevision';
 import { createTestSite } from '@/tests/setup/factories';
 
 function snapshot() {
@@ -36,6 +37,7 @@ describe('model registry and indexes', () => {
       'release_notes',
       'api_keys',
       'intake_rate_limits',
+      'blog_revisions',
     ]);
 
     const blogIndexes = await Blog.collection.indexes();
@@ -71,6 +73,11 @@ describe('model registry and indexes', () => {
       ]),
     );
     expect(apiKeyIndexes.find((index) => index.key.prefix === 1)?.unique).toBe(true);
+
+    const revisionIndexes = await BlogRevision.collection.indexes();
+    expect(revisionIndexes.map((index) => index.key)).toEqual(
+      expect.arrayContaining([{ _id: 1 }, { siteId: 1, blogId: 1, _id: -1 }]),
+    );
   });
 
   it('permits tenant-local values across sites and rejects them within one site', async () => {

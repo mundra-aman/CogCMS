@@ -8,5 +8,6 @@ Initial public-source preparation; no release tag has been published yet.
 - Site-scoped admin access, versioned content API and published MongoDB views.
 - Optional media uploads, publishing notifications and legacy website migration tools.
 - Fictional local demo, deployment guidance and contributor documentation.
+- Blog version history: every save keeps the replaced version (last 50 per post); editors can preview a word-level diff and restore from the editor's History drawer.
 
 Before a release, maintainers should record its version, date, notable changes and any required migration steps here. This file does not establish a release schedule or support window.
