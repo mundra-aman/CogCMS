@@ -3,6 +3,7 @@ import { GET as listBlogs, POST as createBlog } from '@/app/api/admin/blogs/rout
 import { GET as getBlog, PUT as updateBlog } from '@/app/api/admin/blogs/[slug]/route';
 import Author from '@/models/Author';
 import Blog from '@/models/Blog';
+import BlogVersion from '@/models/BlogVersion';
 import { authenticatedRequest, createTestSite, createTestUser } from '@/tests/setup/factories';
 
 const rootContext = { params: Promise.resolve({}) };
@@ -107,6 +108,26 @@ describe('tenant-safe blog admin API', () => {
     const firstPublished = (await (await updateBlog(publish, slugContext('snapshot'))).json())
       .publishedAt;
     expect(firstPublished).toBeTruthy();
+
+    const secondPublish = await authenticatedRequest('http://localhost:3003/api/admin/blogs/snapshot', {
+      user: admin,
+      siteId: site._id.toString(),
+      method: 'PUT',
+      json: { title: 'Published again', status: 'publish' },
+    });
+    expect((await updateBlog(secondPublish, slugContext('snapshot'))).status).toBe(200);
+
+    const blogVersions = await BlogVersion.find({ blogId: (await Blog.findOne({ slug: 'snapshot' }))?._id })
+      .sort({ version: 1 })
+      .select({ version: 1, changeType: 1 })
+      .lean();
+    expect(blogVersions.map(({ version, changeType }) => ({ version, changeType }))).toEqual([
+      { version: 1, changeType: 'create' },
+      { version: 2, changeType: 'update' },
+      { version: 3, changeType: 'update' },
+      { version: 4, changeType: 'update' },
+      { version: 5, changeType: 'update' },
+    ]);
 
     for (const status of ['draft', 'publish'] as const) {
       const request = await authenticatedRequest('http://localhost:3003/api/admin/blogs/snapshot', {

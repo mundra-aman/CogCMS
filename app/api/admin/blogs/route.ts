@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import connectToDatabase from '@/lib/mongodb';
 import Blog from '@/models/Blog';
+import { recordBlogVersion } from '@/models/BlogVersion';
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html';
 import { blogInputSchema } from '@/lib/validation/blog';
 import { readJson, withAdmin } from '@/lib/http/admin-handler';
@@ -45,6 +47,7 @@ export const POST = withAdmin(async (req, { user, site }) => {
     updatedBy: user.id,
   });
   invalidateRelatedPosts(site.id);
+  await recordBlogVersion(blog, new Types.ObjectId(user.id), 'create');
   if (blog.status === 'publish') {
     notifySiteWebhook(site.id, {
       type: 'content.published',

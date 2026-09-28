@@ -13,6 +13,7 @@ import AuthorPicker from '@/components/blog-editor/AuthorPicker';
 import FaqRepeater from '@/components/blog-editor/FaqRepeater';
 import TakeawaysRepeater from '@/components/blog-editor/TakeawaysRepeater';
 import RelatedPicker from '@/components/blog-editor/RelatedPicker';
+import VersionHistory from '@/components/blog-editor/VersionHistory';
 import TocEditor, { type TocOverride } from '@/components/blog-editor/TocEditor';
 import { slugify } from '@/lib/blog-content/slugify';
 import GraphicEditorModal from '@/components/blog-editor/graphics/GraphicEditorModal';
@@ -1007,6 +1008,8 @@ function EditorForm() {
               </>
             )}
           </div>
+
+          {originalSlug ? <VersionHistory slug={originalSlug} /> : null}
 
           {/* Shortcuts button */}
           <button
