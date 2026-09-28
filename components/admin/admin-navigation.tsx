@@ -9,6 +9,7 @@ const contentLinks = [
   ['Blogs', '/admin/dashboard/blogs'],
   ['Authors', '/admin/dashboard/authors'],
   ['FAQs', '/admin/dashboard/faqs'],
+  ['Tags', '/admin/dashboard/tags'],
   ['Whitepapers', '/admin/dashboard/whitepapers'],
   ['Release notes', '/admin/dashboard/release-notes'],
   ['Subscribers', '/admin/dashboard/subscribers'],
