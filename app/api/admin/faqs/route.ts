@@ -5,6 +5,7 @@ import { faqInputSchema } from '@/lib/validation/faq';
 import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { validationError } from '@/lib/http/errors';
 import { notifySiteWebhook } from '@/lib/webhook';
+import { dispatchSubscriptionWebhooks } from '@/lib/webhooks/dispatch';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,12 +38,14 @@ export const POST = withAdmin(async (req, { user, site }) => {
     updatedBy: user.id,
   });
   if (faq.status === 'publish') {
-    notifySiteWebhook(site.id, {
-      type: 'content.published',
-      contentType: 'faq',
+    const webhookEvent = {
+      type: 'content.published' as const,
+      contentType: 'faq' as const,
       slug: faq._id.toString(),
       id: faq._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json(faq, { status: 201 });
 });

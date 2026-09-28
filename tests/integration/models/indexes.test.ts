@@ -7,6 +7,7 @@ import Blog from '@/models/Blog';
 import NewsletterSubscriber from '@/models/NewsletterSubscriber';
 import ReleaseNote from '@/models/ReleaseNote';
 import Whitepaper from '@/models/Whitepaper';
+import WebhookSubscription from '@/models/WebhookSubscription';
 import { createTestSite } from '@/tests/setup/factories';
 
 function snapshot() {
@@ -36,6 +37,7 @@ describe('model registry and indexes', () => {
       'release_notes',
       'api_keys',
       'intake_rate_limits',
+      'webhook_subscriptions',
     ]);
 
     const blogIndexes = await Blog.collection.indexes();

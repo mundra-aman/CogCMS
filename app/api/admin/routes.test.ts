@@ -41,6 +41,8 @@ describe('every /api/admin route rejects anonymous requests', () => {
       './sites/[siteId]/api-keys/route.ts',
       './sites/[siteId]/route.ts',
       './sites/[siteId]/webhook-secret/route.ts',
+      './sites/[siteId]/webhook-subscriptions/[subscriptionId]/route.ts',
+      './sites/[siteId]/webhook-subscriptions/route.ts',
       './sites/route.ts',
       './upload/complete/route.ts',
       './upload/route.ts',

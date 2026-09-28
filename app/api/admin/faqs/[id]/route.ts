@@ -5,6 +5,7 @@ import { faqUpdateSchema } from '@/lib/validation/faq';
 import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { notFound, validationError } from '@/lib/http/errors';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
+import { dispatchSubscriptionWebhooks } from '@/lib/webhooks/dispatch';
 
 export const dynamic = 'force-dynamic';
 type Params = { id: string };
@@ -36,12 +37,14 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
   if (!faq) throw notFound('FAQ');
   const eventType = deliveryEventType(existing.status, faq.status);
   if (eventType) {
-    notifySiteWebhook(site.id, {
+    const webhookEvent = {
       type: eventType,
-      contentType: 'faq',
+      contentType: 'faq' as const,
       slug: faq._id.toString(),
       id: faq._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json(faq);
 });
@@ -53,12 +56,14 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
   const faq = await FAQ.findOneAndDelete({ _id: id, siteId: site.id }).exec();
   if (!faq) throw notFound('FAQ');
   if (faq.status === 'publish') {
-    notifySiteWebhook(site.id, {
-      type: 'content.deleted',
-      contentType: 'faq',
+    const webhookEvent = {
+      type: 'content.deleted' as const,
+      contentType: 'faq' as const,
       slug: faq._id.toString(),
       id: faq._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json({ message: 'Deleted successfully' });
 });

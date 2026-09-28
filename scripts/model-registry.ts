@@ -11,6 +11,7 @@ import ReleaseNote from '@/models/ReleaseNote';
 import Site from '@/models/Site';
 import User from '@/models/User';
 import Whitepaper from '@/models/Whitepaper';
+import WebhookSubscription from '@/models/WebhookSubscription';
 
 export const modelRegistry: Model<any>[] = [
   Site,
@@ -25,4 +26,5 @@ export const modelRegistry: Model<any>[] = [
   ReleaseNote,
   ApiKey,
   IntakeRateLimit,
+  WebhookSubscription,
 ];
