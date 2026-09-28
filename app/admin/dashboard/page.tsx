@@ -5,6 +5,7 @@ import { getCurrentSite } from '@/lib/site/context';
 import Blog from '@/models/Blog';
 import Author from '@/models/Author';
 import FAQ from '@/models/FAQ';
+import Tag from '@/models/Tag';
 import Whitepaper from '@/models/Whitepaper';
 import ReleaseNote from '@/models/ReleaseNote';
 import NewsletterSubscriber from '@/models/NewsletterSubscriber';
@@ -47,12 +48,13 @@ export default async function AdminDashboard() {
 
   await connectToDatabase();
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [blogs, whitepapers, authors, faqs, releaseNotes, subscribers, recentBlogs] =
+  const [blogs, whitepapers, authors, faqs, tags, releaseNotes, subscribers, recentBlogs] =
     await Promise.all([
       Blog.countDocuments({ siteId: site.id, status: 'publish' }),
       Whitepaper.countDocuments({ siteId: site.id, status: 'publish' }),
       Author.countDocuments({ siteId: site.id, status: 'publish' }),
       FAQ.countDocuments({ siteId: site.id, status: 'publish' }),
+      Tag.countDocuments({ siteId: site.id, status: 'publish' }),
       ReleaseNote.countDocuments({ siteId: site.id, status: 'publish' }),
       NewsletterSubscriber.countDocuments({ siteId: site.id }),
       Blog.countDocuments({ siteId: site.id, createdAt: { $gte: oneWeekAgo } }),
@@ -62,6 +64,7 @@ export default async function AdminDashboard() {
     ['Blogs', 'Write, review, and publish long-form content.', '/admin/dashboard/blogs', blogs],
     ['Authors', 'Manage bylines and public author profiles.', '/admin/dashboard/authors', authors],
     ['FAQs', 'Maintain public answers and review submissions.', '/admin/dashboard/faqs', faqs],
+    ['Tags', 'Organize content with color-coded labels.', '/admin/dashboard/tags', tags],
     [
       'Whitepapers',
       'Publish research with site-specific links.',

@@ -3,6 +3,7 @@ import type { IBlog } from '@/models/Blog';
 import type { IFAQ } from '@/models/FAQ';
 import type { IReleaseNote } from '@/models/ReleaseNote';
 import type { ISite } from '@/models/Site';
+import type { ITag } from '@/models/Tag';
 import type { IWhitepaper } from '@/models/Whitepaper';
 import { contentToBlocks } from '@/lib/whitepaper-content';
 import { safeMediaPrefix } from '@/lib/aws-s3';
@@ -64,6 +65,16 @@ export function serializeFaq(faq: IFAQ) {
     answer: faq.answer,
     category: faq.category,
     order: faq.order,
+  };
+}
+
+export function serializeTag(tag: ITag) {
+  return {
+    id: tag._id.toString(),
+    name: tag.name,
+    slug: tag.slug,
+    description: tag.description ?? '',
+    color: tag.color,
   };
 }
 
