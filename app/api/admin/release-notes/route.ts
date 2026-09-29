@@ -8,6 +8,7 @@ import {
   ReleaseNoteValidationError,
 } from '@/lib/release-notes-store';
 import { notifySiteWebhook } from '@/lib/webhook';
+import { recordActivity } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,16 @@ export const POST = withAdmin(async (req, { user, site }) => {
         id: note.id,
       });
     }
+    await recordActivity({
+      siteId: site.id,
+      user,
+      action: 'create',
+      entityType: 'release_note',
+      entityId: note.id,
+      entityTitle: note.version,
+      entitySlug: note.slug,
+      metadata: { status: note.status },
+    });
     return NextResponse.json(note, { status: 201 });
   } catch (error) {
     translateStoreError(error);

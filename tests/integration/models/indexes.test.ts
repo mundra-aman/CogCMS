@@ -36,6 +36,7 @@ describe('model registry and indexes', () => {
       'release_notes',
       'api_keys',
       'intake_rate_limits',
+      'activity_logs',
     ]);
 
     const blogIndexes = await Blog.collection.indexes();

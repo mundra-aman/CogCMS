@@ -5,6 +5,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { notFound, validationError } from '@/lib/http/errors';
 import { estimateWhitepaperReadTime, whitepaperUpdateSchema } from '@/lib/validation/whitepaper';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
+import { recordActivity, resolveContentAction } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -51,10 +52,24 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
       id: whitepaper._id.toString(),
     });
   }
+  const action = resolveContentAction(existing.status, whitepaper.status);
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action,
+    entityType: 'whitepaper',
+    entityId: whitepaper._id.toString(),
+    entityTitle: whitepaper.title,
+    entitySlug: whitepaper.slug,
+    metadata: {
+      previousStatus: existing.status,
+      status: whitepaper.status,
+    },
+  });
   return NextResponse.json(whitepaper);
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const whitepaper = await Whitepaper.findOneAndDelete({ slug, siteId: site.id }).exec();
@@ -67,5 +82,17 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
       id: whitepaper._id.toString(),
     });
   }
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action: 'delete',
+    entityType: 'whitepaper',
+    entityId: whitepaper._id.toString(),
+    entityTitle: whitepaper.title,
+    entitySlug: whitepaper.slug,
+    metadata: {
+      status: whitepaper.status,
+    },
+  });
   return NextResponse.json({ message: 'Deleted successfully' });
 });
