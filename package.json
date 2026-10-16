@@ -1,5 +1,5 @@
 {
-  "name": "cognerd-cms",
+  "name": "cogcms",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -54,5 +54,6 @@
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
-  }
+  },
+  "license": "MIT"
 }
