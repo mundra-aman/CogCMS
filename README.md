@@ -32,6 +32,75 @@ A hosted replica set such as a MongoDB Atlas cluster also runs the app, but `see
 
 Run `npm run typecheck`, `npm test`, and `npm run build` sequentially. Unit and integration tests use a separate temporary MongoDB replica set. If its binary is not cached, `mongodb-memory-server` may download one. Report any setup or baseline failure separately from your changes.
 
+## Assignment feature: Blog version history
+
+### Feature overview
+
+This implementation adds **Blog Version History** to the admin blog editor. Editors can open the history of an existing blog, see every saved version with its timestamp, status and change type, and restore an earlier version.
+
+The feature solves a common editorial failure mode: an accidental edit or publish can overwrite content that was previously correct. Instead of requiring a separate backup system, the CMS stores immutable snapshots alongside the blog and treats restoration as another normal content change.
+
+### Architecture
+
+```text
+Admin Blog Editor
+	 |
+	 | GET /api/admin/blogs/:slug/versions
+	 v
+ Blog Version API -----------------> BlogVersion collection
+	 |
+	 | POST /versions/:version
+	 v
+ Existing Blog API/model
+	 |
+	 |- validate site + author
+	 |- restore snapshot
+	 |- record a new "restore" version
+	 `- emit existing publication webhook when status changes
+```
+
+A `BlogVersion` belongs to both a `siteId` and `blogId`. Each version contains the complete editorial state needed to restore the blog, including content, metadata, taxonomy, publication state and the rendered snapshot. The original blog remains the source of truth for the live document.
+
+The version API is site-scoped through the same `withAdmin` middleware used by the rest of the admin API. Restore also reuses the existing author validation and slug uniqueness rules.
+
+### Design decisions and trade-offs
+
+- **Full snapshots instead of field-level diffs:** snapshots make restore deterministic and simple. The trade-off is additional MongoDB storage, which is reasonable for an assignment-sized editorial history and can later be addressed with retention or compression.
+- **Version after every successful save:** this keeps the mental model simple and ensures that every state an editor explicitly saved is recoverable. Unsaved browser changes are intentionally not persisted.
+- **Restore creates a new version:** restoring an old state never destroys history. If version 2 is restored, the restored state becomes version 3, so the editor can still move forward again.
+- **Versions are scoped by site and blog:** this follows the CMS's existing multi-tenant design and prevents one site's history from being read or restored from another site.
+- **No new dependency:** the feature uses the repository's existing Next.js route handlers, Mongoose, React and Vitest stack. This avoids adding infrastructure solely for version history.
+
+### Technology choices
+
+- **MongoDB/Mongoose:** stores immutable version snapshots in a dedicated `blog_versions` collection.
+- **Next.js route handlers:** expose history and restore operations under the existing `/api/admin/blogs` namespace.
+- **React/TypeScript:** provides the version history dialog in the existing blog editor.
+- **Existing `withAdmin` middleware:** preserves authentication, CSRF/same-origin protection and active-site resolution.
+- **Existing validation and publishing utilities:** author validation, slug checks, related-post invalidation and publication webhooks are reused rather than duplicated.
+- **Vitest:** integration tests cover version creation and update ordering; restore and tenant scoping are enforced by the site-scoped route handlers.
+
+### Setup and usage
+
+No additional package, service or environment variable is required.
+
+1. Start the CMS using the existing setup instructions.
+2. Log in to the admin dashboard and choose a site.
+3. Open **Blogs** and edit an existing blog.
+4. Click **Version history** in the editor header.
+5. Select **Restore** on an older version and confirm.
+6. The editor reloads with the restored content. The restoration itself is recorded as the newest version.
+
+A newly created blog starts at version 1. Existing blogs created before this feature do not have historical snapshots; their first subsequent save becomes the first recorded version.
+
+### Limitations and future work
+
+- There is currently no visual field-by-field diff; the history view shows metadata and supports restoration.
+- There is no configurable retention policy, so frequently edited blogs can accumulate snapshots.
+- Version creation uses a read-then-increment sequence. A future implementation could use an atomic counter if concurrent editors need stronger guarantees.
+- Restore requires the referenced author to still satisfy the CMS's current publication rules. This avoids restoring a state that violates today's publishing constraints.
+- A future UI could add a read-only preview of a selected version before restoring it.
+
 ## Boundaries
 
 - Admin routes use a login session and active-site selection. `/api/v1` uses site-scoped keys and exposes published content only.

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import connectToDatabase from '@/lib/mongodb';
 import Blog from '@/models/Blog';
+import { recordBlogVersion } from '@/models/BlogVersion';
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html';
 import { blogInputSchema } from '@/lib/validation/blog';
 import { readJson, withAdmin } from '@/lib/http/admin-handler';
@@ -54,6 +56,7 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
     { returnDocument: 'after', runValidators: true },
   ).exec();
   if (!blog) throw notFound('Blog');
+  await recordBlogVersion(blog, new Types.ObjectId(user.id), 'update');
   invalidateRelatedPosts(site.id);
   const eventType = deliveryEventType(existing.status, blog.status);
   if (eventType) {
