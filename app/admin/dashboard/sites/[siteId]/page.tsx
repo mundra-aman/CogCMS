@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import type { AdminSiteView } from '@/lib/admin/serializers';
 import { SiteForm } from '@/components/admin/site-form';
 import { ApiKeysPanel } from '@/components/admin/api-keys-panel';
+import { WebhooksPanel } from '@/components/admin/webhooks-panel';
 
 export default function EditSitePage() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -36,6 +37,7 @@ export default function EditSitePage() {
         <>
           <SiteForm site={site} />
           <ApiKeysPanel siteId={site.id} />
+          <WebhooksPanel siteId={site.id} />
         </>
       ) : null}
     </section>

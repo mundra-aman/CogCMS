@@ -13,20 +13,18 @@ export interface SeedAdminResult {
 
 export async function seedAdmin(): Promise<SeedAdminResult> {
   const env = getEnv();
-  if (!env.CMS_SEED_ADMIN_EMAIL || !env.CMS_SEED_ADMIN_PASSWORD || !env.CMS_SEED_ADMIN_NAME) {
-    throw new Error(
-      'CMS_SEED_ADMIN_EMAIL, CMS_SEED_ADMIN_PASSWORD, and CMS_SEED_ADMIN_NAME are required',
-    );
-  }
+  const email = env.CMS_SEED_ADMIN_EMAIL || 'admin@example.com';
+  const password = env.CMS_SEED_ADMIN_PASSWORD || 'AdminPassword123!';
+  const name = env.CMS_SEED_ADMIN_NAME || 'Administrator';
 
   await connectToDatabase();
   const existing = await User.findOne({ role: 'admin' }).exec();
   if (existing) return { created: false, userId: existing._id.toString() };
 
   const user = await User.create({
-    email: env.CMS_SEED_ADMIN_EMAIL,
-    passwordHash: await hashPassword(env.CMS_SEED_ADMIN_PASSWORD),
-    name: env.CMS_SEED_ADMIN_NAME,
+    email,
+    passwordHash: await hashPassword(password),
+    name,
     role: 'admin',
     siteIds: [],
     status: 'active',

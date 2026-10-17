@@ -8,6 +8,7 @@ import { validationError } from '@/lib/http/errors';
 import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { notifySiteWebhook } from '@/lib/webhook';
+import { dispatchSubscriptionWebhooks } from '@/lib/webhooks/dispatch';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
 
 export const dynamic = 'force-dynamic';
@@ -46,12 +47,14 @@ export const POST = withAdmin(async (req, { user, site }) => {
   });
   invalidateRelatedPosts(site.id);
   if (blog.status === 'publish') {
-    notifySiteWebhook(site.id, {
-      type: 'content.published',
-      contentType: 'post',
+    const webhookEvent = {
+      type: 'content.published' as const,
+      contentType: 'post' as const,
       slug: blog.slug,
       id: blog._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json(blog, { status: 201 });
 });

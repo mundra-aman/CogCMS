@@ -8,6 +8,7 @@ import { notFound, validationError } from '@/lib/http/errors';
 import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
+import { dispatchSubscriptionWebhooks } from '@/lib/webhooks/dispatch';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
 
 export const dynamic = 'force-dynamic';
@@ -57,12 +58,14 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
   invalidateRelatedPosts(site.id);
   const eventType = deliveryEventType(existing.status, blog.status);
   if (eventType) {
-    notifySiteWebhook(site.id, {
+    const webhookEvent = {
       type: eventType,
-      contentType: 'post',
+      contentType: 'post' as const,
       slug: blog.slug,
       id: blog._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json(blog);
 });
@@ -74,12 +77,14 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
   if (!blog) throw notFound('Blog');
   invalidateRelatedPosts(site.id);
   if (blog.status === 'publish') {
-    notifySiteWebhook(site.id, {
-      type: 'content.deleted',
-      contentType: 'post',
+    const webhookEvent = {
+      type: 'content.deleted' as const,
+      contentType: 'post' as const,
       slug: blog.slug,
       id: blog._id.toString(),
-    });
+    };
+    notifySiteWebhook(site.id, webhookEvent);
+    dispatchSubscriptionWebhooks(site.id, webhookEvent);
   }
   return NextResponse.json({ message: 'Deleted successfully' });
 });
