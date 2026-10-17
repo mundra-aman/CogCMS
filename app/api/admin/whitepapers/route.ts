@@ -5,6 +5,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { validationError } from '@/lib/http/errors';
 import { estimateWhitepaperReadTime, whitepaperInputSchema } from '@/lib/validation/whitepaper';
 import { notifySiteWebhook } from '@/lib/webhook';
+import { recordActivity } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,5 +40,15 @@ export const POST = withAdmin(async (req, { user, site }) => {
       id: whitepaper._id.toString(),
     });
   }
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action: 'create',
+    entityType: 'whitepaper',
+    entityId: whitepaper._id.toString(),
+    entityTitle: whitepaper.title,
+    entitySlug: whitepaper.slug,
+    metadata: { status: whitepaper.status },
+  });
   return NextResponse.json(whitepaper, { status: 201 });
 });

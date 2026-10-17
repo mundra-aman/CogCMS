@@ -9,6 +9,7 @@ import {
   updateReleaseNote,
 } from '@/lib/release-notes-store';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
+import { recordActivity, resolveContentAction } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -44,13 +45,27 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
         id: note.id,
       });
     }
+    const action = resolveContentAction(before.status, note.status);
+    await recordActivity({
+      siteId: site.id,
+      user,
+      action,
+      entityType: 'release_note',
+      entityId: note.id,
+      entityTitle: note.version,
+      entitySlug: note.slug,
+      metadata: {
+        previousStatus: before.status,
+        status: note.status,
+      },
+    });
     return NextResponse.json(note);
   } catch (error) {
     translateStoreError(error);
   }
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   try {
     const { slug } = await params;
     const before = await getReleaseNoteForEditing(site.id, slug);
@@ -63,6 +78,18 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
         id: before.id,
       });
     }
+    await recordActivity({
+      siteId: site.id,
+      user,
+      action: 'delete',
+      entityType: 'release_note',
+      entityId: before.id,
+      entityTitle: before.version,
+      entitySlug: before.slug,
+      metadata: {
+        status: before.status,
+      },
+    });
     return NextResponse.json(deleted);
   } catch (error) {
     translateStoreError(error);

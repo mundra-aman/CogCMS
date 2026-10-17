@@ -6,6 +6,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { notFound, validationError } from '@/lib/http/errors';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertAuthorNotUsedByPublishedBlogs } from '@/lib/admin/author-policy';
+import { recordActivity, resolveContentAction } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -49,10 +50,24 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
       id: author._id.toString(),
     });
   }
+  const action = resolveContentAction(existing.status, author.status);
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action,
+    entityType: 'author',
+    entityId: author._id.toString(),
+    entityTitle: author.name,
+    entitySlug: author.slug,
+    metadata: {
+      previousStatus: existing.status,
+      status: author.status,
+    },
+  });
   return NextResponse.json(author);
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const existing = await Author.findOne({ slug, siteId: site.id }).exec();
@@ -68,5 +83,17 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
       id: author._id.toString(),
     });
   }
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action: 'delete',
+    entityType: 'author',
+    entityId: author._id.toString(),
+    entityTitle: author.name,
+    entitySlug: author.slug,
+    metadata: {
+      status: author.status,
+    },
+  });
   return NextResponse.json({ ok: true });
 });

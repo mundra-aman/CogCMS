@@ -9,6 +9,7 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { recordActivity, resolveContentAction } from '@/lib/admin/activity-log';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -64,10 +65,24 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
       id: blog._id.toString(),
     });
   }
+  const action = resolveContentAction(existing.status, blog.status);
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action,
+    entityType: 'blog',
+    entityId: blog._id.toString(),
+    entityTitle: blog.title,
+    entitySlug: blog.slug,
+    metadata: {
+      previousStatus: existing.status,
+      status: blog.status,
+    },
+  });
   return NextResponse.json(blog);
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const blog = await Blog.findOneAndDelete({ slug, siteId: site.id }).exec();
@@ -81,5 +96,17 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
       id: blog._id.toString(),
     });
   }
+  await recordActivity({
+    siteId: site.id,
+    user,
+    action: 'delete',
+    entityType: 'blog',
+    entityId: blog._id.toString(),
+    entityTitle: blog.title,
+    entitySlug: blog.slug,
+    metadata: {
+      status: blog.status,
+    },
+  });
   return NextResponse.json({ message: 'Deleted successfully' });
 });
