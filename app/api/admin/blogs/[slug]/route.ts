@@ -9,15 +9,17 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { createBlogRevision, ensureBlogRevisionBaseline } from '@/lib/blog-revisions';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
 
-export const GET = withAdmin<Params>(async (_req, { params, site }) => {
+export const GET = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const blog = await Blog.findOne({ slug, siteId: site.id }).exec();
   if (!blog) throw notFound('Blog');
+   await ensureBlogRevisionBaseline(blog, user.id);
   return NextResponse.json(blog);
 });
 
@@ -54,6 +56,7 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
     { returnDocument: 'after', runValidators: true },
   ).exec();
   if (!blog) throw notFound('Blog');
+  await createBlogRevision(blog, user.id);
   invalidateRelatedPosts(site.id);
   const eventType = deliveryEventType(existing.status, blog.status);
   if (eventType) {
