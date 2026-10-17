@@ -13,8 +13,11 @@ let db: mongo.Db;
 beforeAll(async () => {
   const password = randomBytes(24).toString('hex');
   server = await MongoMemoryServer.create({
-    auth: { enable: true, customRootName: 'test_operator', customRootPwd: password },
-  });
+  binary: {
+    version: '7.0.14',
+  },
+  auth: { enable: true, customRootName: 'test_operator', customRootPwd: password },
+});
   operator = await new mongo.MongoClient(server.getUri(), {
     auth: { username: 'test_operator', password },
     authSource: 'admin',

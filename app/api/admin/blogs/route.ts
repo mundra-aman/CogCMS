@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Blog from '@/models/Blog';
+import { logActivity } from '@/lib/admin/activity-log';
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html';
 import { blogInputSchema } from '@/lib/validation/blog';
 import { readJson, withAdmin } from '@/lib/http/admin-handler';
@@ -26,14 +27,17 @@ export const POST = withAdmin(async (req, { user, site }) => {
   delete data.createdAt;
   const status = data.status ?? 'publish';
   const content = sanitizeBlogHtml(data.content);
+
   const rendered = await renderBlogSnapshot(content);
 
   await connectToDatabase();
+
   await assertBlogAuthorIsUsable({
     authorId: data.authorId,
     siteId: site.id,
     blogStatus: status,
   });
+
   const blog = await Blog.create({
     ...data,
     content,
@@ -44,7 +48,20 @@ export const POST = withAdmin(async (req, { user, site }) => {
     createdBy: user.id,
     updatedBy: user.id,
   });
+
+  await logActivity({
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    action: 'CREATE',
+    resourceType: 'Blog',
+    resourceId: blog._id.toString(),
+    resourceTitle: blog.title,
+    siteId: site.id,
+  });
+
   invalidateRelatedPosts(site.id);
+
   if (blog.status === 'publish') {
     notifySiteWebhook(site.id, {
       type: 'content.published',
@@ -53,5 +70,6 @@ export const POST = withAdmin(async (req, { user, site }) => {
       id: blog._id.toString(),
     });
   }
+
   return NextResponse.json(blog, { status: 201 });
 });
