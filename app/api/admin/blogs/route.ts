@@ -9,6 +9,7 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { scheduleUpdate } from '@/lib/publishing/schedule';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export const POST = withAdmin(async (req, { user, site }) => {
   const data = { ...parsed.data };
   delete data.createdAt;
   const status = data.status ?? 'publish';
+  const schedule = scheduleUpdate(data, status) ?? { scheduledAt: null, scheduleTimezone: null };
   const content = sanitizeBlogHtml(data.content);
   const rendered = await renderBlogSnapshot(content);
 
@@ -39,6 +41,7 @@ export const POST = withAdmin(async (req, { user, site }) => {
     content,
     rendered,
     status,
+    ...schedule,
     publishedAt: status === 'publish' ? new Date() : null,
     siteId: site.id,
     createdBy: user.id,

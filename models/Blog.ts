@@ -5,11 +5,16 @@ export type PublicationStatus = 'draft' | 'publish';
 
 export interface IBlog extends Document<Types.ObjectId> {
   siteId: Types.ObjectId;
+  studioSourceId?: string | null;
+  studioRevision?: string | null;
+  /** updatedAt of the last Content Studio delivery; a later updatedAt means a CMS edit. */
+  studioDeliveredAt?: Date | null;
   title: string;
   slug: string;
   excerpt: string;
   content: string;
   imageUrl: string;
+  imageAlt: string;
   tag?: string;
   authorId: Types.ObjectId | null;
   category?: string;
@@ -20,6 +25,10 @@ export interface IBlog extends Document<Types.ObjectId> {
   tocOverrides: { id: string; label?: string; hidden?: boolean }[];
   status: PublicationStatus;
   publishedAt: Date | null;
+  /** A draft's planned go-live time; Content Studio publishes it then. */
+  scheduledAt: Date | null;
+  /** IANA zone the schedule was set in, for showing the same wall time. */
+  scheduleTimezone: string | null;
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string;
@@ -56,11 +65,15 @@ const RenderedBlogSchema = new Schema(
 const BlogSchema = new Schema<IBlog>(
   {
     siteId: { type: Schema.Types.ObjectId, ref: 'Site', required: true, index: true },
+    studioSourceId: { type: String, default: null },
+    studioRevision: { type: String, default: null },
+    studioDeliveredAt: { type: Date, default: null },
     title: { type: String, required: true },
     slug: { type: String, required: true },
     excerpt: { type: String, default: '' },
     content: { type: String, required: true },
     imageUrl: { type: String, default: '' },
+    imageAlt: { type: String, default: '' },
     tag: { type: String, default: 'Insights' },
     authorId: { type: Schema.Types.ObjectId, ref: 'Author', default: null },
     category: { type: String, default: '' },
@@ -77,6 +90,8 @@ const BlogSchema = new Schema<IBlog>(
     },
     status: { type: String, enum: ['draft', 'publish'], default: 'publish' },
     publishedAt: { type: Date, default: null },
+    scheduledAt: { type: Date, default: null },
+    scheduleTimezone: { type: String, default: null },
     metaTitle: { type: String, default: '' },
     metaDescription: { type: String, default: '' },
     keywords: { type: String, default: '' },
@@ -90,6 +105,11 @@ const BlogSchema = new Schema<IBlog>(
 
 BlogSchema.pre('validate', function setFirstPublishedAt() {
   if (this.status === 'publish' && !this.publishedAt) this.publishedAt = new Date();
+  // Only a draft waits for a go-live time.
+  if (this.status === 'publish') {
+    this.scheduledAt = null;
+    this.scheduleTimezone = null;
+  }
 });
 BlogSchema.index({ siteId: 1, slug: 1 }, { unique: true });
 BlogSchema.index({ siteId: 1, status: 1, createdAt: -1 });

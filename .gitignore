@@ -155,3 +155,9 @@ data/
 *.p12
 *.pfx
 !.env.example
+
+# Test and tooling output
+playwright-report/
+test-results/
+output/cms-publishing/
+output/build-tools/

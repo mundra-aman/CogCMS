@@ -1,6 +1,11 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
-export const API_KEY_SCOPES = ['content:read', 'intake:write'] as const;
+export const API_KEY_SCOPES = [
+  'content:read',
+  'intake:write',
+  'publishing:write',
+  'publishing:connect',
+] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 export interface IApiKey extends Document<Types.ObjectId> {

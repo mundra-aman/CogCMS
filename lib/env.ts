@@ -151,6 +151,9 @@ const envSchema = z.object({
   CMS_SEED_ADMIN_PASSWORD: optionalPassword,
   CMS_SEED_ADMIN_NAME: optionalString,
   CMS_TRUSTED_ORIGINS: trustedOrigins,
+  CMS_CONTENT_STUDIO_ORIGINS: z.string().default(''),
+  // Shared with a Content Studio backend for the site lookup; empty turns the lookup off.
+  CMS_STUDIO_LOOKUP_TOKEN: z.union([z.literal(''), z.string().min(32)]).default(''),
   NEXT_PUBLIC_CMS_URL: optionalHttpOrigin,
   S3_REGION: optionalString,
   S3_BUCKET_NAME: optionalString,

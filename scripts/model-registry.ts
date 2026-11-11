@@ -1,7 +1,10 @@
 import type { Model } from 'mongoose';
+import StudioConnectionGrant from '@/models/StudioConnectionGrant';
+import StudioPublicationReceipt from '@/models/StudioPublicationReceipt';
 import Author from '@/models/Author';
 import ApiKey from '@/models/ApiKey';
 import Blog from '@/models/Blog';
+import Event from '@/models/Event';
 import FAQ from '@/models/FAQ';
 import FAQSubmission from '@/models/FAQSubmission';
 import LoginAttempt from '@/models/LoginAttempt';
@@ -17,6 +20,7 @@ export const modelRegistry: Model<any>[] = [
   User,
   LoginAttempt,
   Blog,
+  Event,
   Author,
   FAQ,
   FAQSubmission,
@@ -25,4 +29,6 @@ export const modelRegistry: Model<any>[] = [
   ReleaseNote,
   ApiKey,
   IntakeRateLimit,
+  StudioConnectionGrant,
+  StudioPublicationReceipt,
 ];
