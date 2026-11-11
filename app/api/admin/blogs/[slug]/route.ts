@@ -9,7 +9,6 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
-import { scheduleUpdate } from '@/lib/publishing/schedule';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -42,13 +41,6 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
 
   const update: Record<string, unknown> = { ...parsed.data, updatedBy: user.id };
   delete update.createdAt;
-  delete update.scheduledAt;
-  delete update.scheduleTimezone;
-  // Scheduling is for drafts: a schedule never unpublishes a live blog.
-  if (existing.status === 'publish' && parsed.data.scheduledAt)
-    throw validationError(null, 'This blog is live. Unpublish it before scheduling it.');
-  const schedule = scheduleUpdate(parsed.data, nextStatus);
-  if (schedule) Object.assign(update, schedule);
   if (parsed.data.content !== undefined) {
     const content = sanitizeBlogHtml(parsed.data.content);
     update.content = content;

@@ -23,9 +23,7 @@ export default async function proxy(request: NextRequest) {
 
   // A valid signature is insufficient to redirect away from login: the user may
   // have been disabled or deleted. The database-backed dashboard remains authority.
-  // The handoff authenticates against Mongo itself and preserves its validated
-  // editor destination through login; the generic page redirect would lose it.
-  if (isLogin || pathname === '/admin/open-blog' || !isAdminPage) return NextResponse.next();
+  if (isLogin || !isAdminPage) return NextResponse.next();
   if (await hasValidSession(request)) return NextResponse.next();
   const response = NextResponse.redirect(new URL('/admin/login', request.url));
   response.cookies.delete(SESSION_COOKIE);

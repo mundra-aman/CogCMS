@@ -10,7 +10,6 @@ Initial public-source preparation; no release tag has been published yet.
 - Fictional local demo, deployment guidance and contributor documentation.
 - Events: site-scoped editor with ticket pricing, `/api/v1/events` and a published MongoDB view.
 - Cover image alt text (`imageAlt`) on posts; `/api/v1` is now `X-CMS-Version: 1.1`.
-- Optional Content Studio publishing integration (connect, create, schedule and publish posts).
 - Admin UI refresh: author and FAQ editing, shared confirm dialogs, toasts, row actions and unsaved-change guards.
 - Playwright end-to-end tests (`e2e/`) and broader unit/integration coverage.
 

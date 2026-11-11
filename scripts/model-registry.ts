@@ -1,6 +1,4 @@
 import type { Model } from 'mongoose';
-import StudioConnectionGrant from '@/models/StudioConnectionGrant';
-import StudioPublicationReceipt from '@/models/StudioPublicationReceipt';
 import Author from '@/models/Author';
 import ApiKey from '@/models/ApiKey';
 import Blog from '@/models/Blog';
@@ -29,6 +27,4 @@ export const modelRegistry: Model<any>[] = [
   ReleaseNote,
   ApiKey,
   IntakeRateLimit,
-  StudioConnectionGrant,
-  StudioPublicationReceipt,
 ];

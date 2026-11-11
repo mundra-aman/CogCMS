@@ -14,7 +14,6 @@ interface Blog {
   title: string;
   slug: string;
   status?: string;
-  scheduledAt?: string | null;
   tag?: string;
   createdAt: string;
 }
@@ -195,17 +194,6 @@ export default function AdminBlogsList() {
                     >
                       {blog.status === 'publish' ? 'Published' : 'Draft'}
                     </span>
-                    {blog.status !== 'publish' && blog.scheduledAt ? (
-                      <span className="rounded-md bg-orange-50 px-2 py-1 font-medium text-orange-800">
-                        Scheduled{' '}
-                        {new Date(blog.scheduledAt).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    ) : null}
                     {blog.tag ? <span>{blog.tag}</span> : null}
                     <time dateTime={blog.createdAt}>
                       Created {new Date(blog.createdAt).toLocaleDateString()}

@@ -99,7 +99,7 @@ export function ApiKeysPanel({ siteId }: { siteId: string }) {
           />
         </label>
         <div className="flex flex-wrap items-end gap-3 pb-2 text-sm">
-          {(['content:read', 'intake:write', 'publishing:write'] as const).map((scope) => (
+          {(['content:read', 'intake:write'] as const).map((scope) => (
             <label key={scope} className="flex items-center gap-2">
               <input
                 type="checkbox"

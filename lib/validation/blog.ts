@@ -18,8 +18,6 @@ export const blogInputSchema = z
     keywords: z.string().optional(),
     isFeatured: z.boolean().optional(),
     createdAt: z.string().optional(),
-    scheduledAt: z.string().datetime({ offset: true }).nullable().optional(),
-    scheduleTimezone: z.string().max(64).nullable().optional(),
     authorId: objectIdSchema.nullable().optional(),
     category: z.string().optional(),
     tags: z.array(z.string()).optional(),

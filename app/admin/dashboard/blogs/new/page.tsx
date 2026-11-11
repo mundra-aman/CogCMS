@@ -43,23 +43,6 @@ const TAG_COLORS = [
   'text-teal-700 bg-teal-50 border-teal-200',
 ];
 
-/** ISO time -> value for a datetime-local input, in the browser's own zone. */
-function toLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatSchedule(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 function tagColorIndex(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i += 1) hash = (hash * 31 + tag.charCodeAt(i)) % 100000;
@@ -518,11 +501,6 @@ function EditorForm() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [slugInvalid, setSlugInvalid] = useState(false);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
-  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
-  // A live blog is not scheduled: saving a schedule would turn it back into a draft.
-  const [isLive, setIsLive] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [scheduleInput, setScheduleInput] = useState('');
 
   // Tag Menu State
   const [showTagMenu, setShowTagMenu] = useState(false);
@@ -600,8 +578,6 @@ function EditorForm() {
           setFormData(hydrated);
           setContent(data.content || '');
           setLastPublishedAt(data.status === 'publish' ? data.updatedAt || null : null);
-          setScheduledAt(data.status === 'draft' ? data.scheduledAt || null : null);
-          setIsLive(data.status === 'publish');
           setSlugManuallyEdited(true);
           initialSnapshotRef.current = JSON.stringify({
             ...hydrated,
@@ -952,8 +928,7 @@ function EditorForm() {
   }, []);
 
   // ── Submit ────────────────────────────────────
-  /** schedule: an ISO time to schedule the draft, null to clear it, undefined to keep it. */
-  const handleSubmit = async (action: 'draft' | 'publish', schedule?: string | null) => {
+  const handleSubmit = async (action: 'draft' | 'publish') => {
     if (!formData.title) {
       showToast('error', TOAST_MESSAGES.blogEditor.titleRequired);
       return;
@@ -998,12 +973,6 @@ function EditorForm() {
           category: formData.tags[0] || 'Insights',
           content,
           status: action,
-          ...(action === 'draft' && schedule !== undefined
-            ? {
-                scheduledAt: schedule,
-                scheduleTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              }
-            : {}),
           faqs: cleanFaqs,
           keyTakeaways: cleanTakeaways,
           relatedSlugs: formData.relatedSlugs,
@@ -1025,11 +994,7 @@ function EditorForm() {
       // The provider lives in the dashboard layout, so this survives the redirect.
       showToast(
         'success',
-        schedule
-          ? TOAST_MESSAGES.blogEditor.scheduled
-          : schedule === null
-            ? TOAST_MESSAGES.blogEditor.scheduleCleared
-            : action === 'publish'
+        action === 'publish'
           ? isEdit
             ? TOAST_MESSAGES.blogEditor.republished
             : TOAST_MESSAGES.blogEditor.published
@@ -1230,82 +1195,6 @@ function EditorForm() {
           >
             Save draft
           </button>
-          {!isLive && <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setScheduleInput(scheduledAt ? toLocalInput(scheduledAt) : '');
-                setScheduleOpen((open) => !open);
-              }}
-              disabled={loading}
-              aria-expanded={scheduleOpen}
-              className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-700 disabled:opacity-50"
-            >
-              {scheduledAt ? 'Scheduled' : 'Schedule'}
-            </button>
-            {scheduledAt && !scheduleOpen && (
-              <span
-                className="absolute right-0 top-full mt-1 whitespace-nowrap text-[10px] text-orange-700"
-                style={{ fontWeight: 500 }}
-              >
-                {formatSchedule(scheduledAt)}
-              </span>
-            )}
-            {scheduleOpen && (
-              <div
-                role="dialog"
-                aria-label="Schedule this blog"
-                className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-stone-200 bg-white p-4 shadow-lg"
-              >
-                <label className="block text-xs font-semibold text-stone-700" htmlFor="blog-schedule">
-                  Publish on
-                </label>
-                <input
-                  id="blog-schedule"
-                  type="datetime-local"
-                  value={scheduleInput}
-                  min={toLocalInput(new Date().toISOString())}
-                  onChange={(e) => setScheduleInput(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
-                />
-                <p className="mt-2 text-[11px] leading-snug text-stone-500">
-                  The blog stays a draft. It shows on the Content Studio calendar, and Content
-                  Studio publishes it at this time.
-                </p>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  {scheduledAt ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setScheduleOpen(false);
-                        void handleSubmit('draft', null);
-                      }}
-                      className="text-xs font-semibold text-stone-500 hover:text-stone-800"
-                    >
-                      Remove schedule
-                    </button>
-                  ) : (
-                    <span />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const when = scheduleInput ? new Date(scheduleInput) : null;
-                      if (!when || !Number.isFinite(when.getTime())) {
-                        showToast('error', TOAST_MESSAGES.blogEditor.scheduleRequired);
-                        return;
-                      }
-                      setScheduleOpen(false);
-                      void handleSubmit('draft', when.toISOString());
-                    }}
-                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700"
-                  >
-                    Save schedule
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>}
           <div className="relative">
             <button
               type="button"

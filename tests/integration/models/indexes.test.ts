@@ -3,7 +3,6 @@ import { ensureIndexes } from '@/scripts/ensure-indexes';
 import { modelRegistry } from '@/scripts/model-registry';
 import Author from '@/models/Author';
 import ApiKey from '@/models/ApiKey';
-import StudioConnectionGrant from '@/models/StudioConnectionGrant';
 import Blog from '@/models/Blog';
 import NewsletterSubscriber from '@/models/NewsletterSubscriber';
 import ReleaseNote from '@/models/ReleaseNote';
@@ -38,13 +37,7 @@ describe('model registry and indexes', () => {
       'release_notes',
       'api_keys',
       'intake_rate_limits',
-      'studio_connection_grants',
-      'studio_publication_receipts',
     ]);
-
-    const grantIndexes = await StudioConnectionGrant.collection.indexes();
-    expect(grantIndexes.find(index => index.key.codeHash === 1)?.unique).toBe(true);
-    expect(grantIndexes.find(index => index.key.expiresAt === 1)?.expireAfterSeconds).toBe(0);
 
     const blogIndexes = await Blog.collection.indexes();
     expect(blogIndexes.map((index) => index.key)).toEqual(

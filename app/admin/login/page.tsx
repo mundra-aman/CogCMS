@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { safeStudioReturnPath } from '@/lib/publishing/connect-return';
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAction } from './actions';
@@ -72,7 +71,7 @@ export default function AdminLogin() {
           showToast('error', result.error || TOAST_MESSAGES.auth.loginFailed);
         }
       } else if (result.success) {
-        router.push(safeStudioReturnPath(new URLSearchParams(window.location.search).get('returnTo')));
+        router.push('/admin/dashboard');
       }
     });
   };
