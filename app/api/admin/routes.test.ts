@@ -26,6 +26,7 @@ describe('every /api/admin route rejects anonymous requests', () => {
     expect(entries.map(([p]) => p).sort()).toEqual([
       './api-keys/[id]/rotate/route.ts',
       './api-keys/[id]/route.ts',
+      './audit-logs/route.ts',
       './authors/[slug]/route.ts',
       './authors/route.ts',
       './blogs/[slug]/route.ts',

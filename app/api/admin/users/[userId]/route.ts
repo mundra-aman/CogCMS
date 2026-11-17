@@ -8,6 +8,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { notFound, validationError } from '@/lib/http/errors';
 import { updateUserSchema, userAssignmentSchema } from '@/lib/validation/user';
 import User from '@/models/User';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export const GET = withAdmin<{ userId: string }>(
 );
 
 export const PUT = withAdmin<{ userId: string }>(
-  async (req, { params }) => {
+  async (req, { params, user }) => {
     const { userId } = await params;
     assertUserId(userId);
     const parsed = updateUserSchema.safeParse(await readJson(req));
@@ -53,6 +54,25 @@ export const PUT = withAdmin<{ userId: string }>(
     target.set(updates);
     if (password) target.passwordHash = await hashPassword(password);
     await target.save();
+
+    const auditSiteId = target.siteIds[0] || user.siteIds[0];
+    if (auditSiteId) {
+      // Audit log: record user account, role, and status modifications
+      await logAudit({
+        siteId: auditSiteId,
+        actor: user,
+        entityType: 'user',
+        entityId: target._id.toString(),
+        entityTitle: target.name || target.email,
+        action: 'update',
+        details: {
+          email: target.email,
+          role: target.role,
+          status: target.status,
+        },
+      });
+    }
+
     return NextResponse.json(serializeUser(target));
   },
   { admin: true, site: false },

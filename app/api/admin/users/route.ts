@@ -7,6 +7,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { validationError } from '@/lib/http/errors';
 import { createUserSchema } from '@/lib/validation/user';
 import User from '@/models/User';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,21 @@ export const POST = withAdmin(
       passwordHash: await hashPassword(password),
       createdBy: user.id,
     });
+    
+    const primarySiteId = created.siteIds[0] || user.siteIds[0];
+    
+    // Audit log: record creation event with actor context and tenant site boundary
+    if (primarySiteId) {
+      await logAudit({
+        siteId: primarySiteId,
+        actor: user,
+        entityType: 'user',
+        entityId: created._id.toString(),
+        entityTitle: created.name || created.email,
+        action: 'create',
+        details: { email: created.email, role: created.role },
+      });
+    }
     return NextResponse.json(serializeUser(created), { status: 201 });
   },
   { admin: true, site: false },

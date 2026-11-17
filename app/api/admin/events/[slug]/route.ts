@@ -6,6 +6,7 @@ import { notFound, validationError } from '@/lib/http/errors';
 import { eventInputSchema } from '@/lib/validation/event';
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -32,9 +33,28 @@ export const PUT = withAdmin<Params>(async (req, { site, user, params }) => {
   const type = deliveryEventType(before, event.status);
   if (type)
     notifySiteWebhook(site.id, { type, contentType: 'event', slug: event.slug, id: event.id });
+  // Audit log: record update and publication status transitions with actor context
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'event',
+    entityId: event.id,
+    entityTitle: event.title,
+    action:
+      before !== event.status
+        ? event.status === 'publish'
+          ? 'publish'
+          : 'unpublish'
+        : 'update',
+    details: {
+      slug: event.slug,
+      status: event.status,
+      previousStatus: before,
+    },
+  });
   return NextResponse.json(event);
 });
-export const DELETE = withAdmin<Params>(async (_req, { site, params }) => {
+export const DELETE = withAdmin<Params>(async (_req, { site, user, params }) => {
   await connectToDatabase();
   const event = await Event.findOneAndDelete({ siteId: site.id, slug: (await params).slug });
   if (!event) throw notFound('Event');
@@ -45,5 +65,15 @@ export const DELETE = withAdmin<Params>(async (_req, { site, params }) => {
       slug: event.slug,
       id: event.id,
     });
+  // Audit log: record deletion event before responding to caller
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'event',
+    entityId: event.id,
+    entityTitle: event.title,
+    action: 'delete',
+    details: { slug: event.slug },
+  });
   return NextResponse.json({ message: 'Deleted successfully' });
 });

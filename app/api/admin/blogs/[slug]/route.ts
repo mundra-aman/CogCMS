@@ -9,6 +9,7 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -64,10 +65,29 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
       id: blog._id.toString(),
     });
   }
+  // Audit log: record update and publication status transitions with actor context
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'blog',
+    entityId: blog._id.toString(),
+    entityTitle: blog.title,
+    action:
+      existing.status !== blog.status
+        ? blog.status === 'publish'
+          ? 'publish'
+          : 'unpublish'
+        : 'update',
+    details: {
+      slug: blog.slug,
+      status: blog.status,
+      previousStatus: existing.status,
+    },
+  });
   return NextResponse.json(blog);
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const blog = await Blog.findOneAndDelete({ slug, siteId: site.id }).exec();
@@ -81,5 +101,15 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
       id: blog._id.toString(),
     });
   }
+  // Audit log: record deletion event before responding to caller
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'blog',
+    entityId: blog._id.toString(),
+    entityTitle: blog.title,
+    action: 'delete',
+    details: { slug: blog.slug },
+  });
   return NextResponse.json({ message: 'Deleted successfully' });
 });

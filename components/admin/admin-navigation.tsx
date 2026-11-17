@@ -35,6 +35,8 @@ export function AdminNavigation({
           ? [
               ['Sites', '/admin/dashboard/sites'],
               ['Users', '/admin/dashboard/users'],
+              // Added new navigation button for Audit logs
+              ['Audit log', '/admin/dashboard/audit-logs'],
             ]
           : []),
         ['Connect a website', '/admin/dashboard/connect'],
