@@ -24,3 +24,28 @@ For server-side MongoDB consumers, provision the seven per-site published views 
 Configure the website's webhook URL in the CMS site settings. Verify the timestamp and HMAC over the unchanged request bytes before invalidating caches. Webhooks are best effort with one retry; use bounded cache expiry as a fallback. The dashboard's **Connect a website** guide contains the full implementation checklist.
 
 Newsletter and FAQ submissions use `/api/v1/intake/*` through your website server with `intake:write`. Follow the input schemas and trusted visitor-IP requirements in the implementation. Show validation failures, rate limits and outages to the user instead of reporting false success.
+
+## Admin API
+
+Admin endpoints under `/api/admin/*` require an authenticated CMS session cookie (`withAdmin`), enforce same-origin checks on mutations, and resolve the active `siteId` server-side.
+
+### Audit Logs (`GET /api/admin/audit-logs`)
+
+Returns reverse-chronological (`createdAt: -1, _id: -1`) mutation audit entries for the active site alongside global (`siteId: null`) `user` and `site` entries. Requires an **admin** session (`{ admin: true, site: true }`); editors receive `403`.
+
+**Query parameters**
+
+- `page` (optional, default `1`): Digits-only positive safe integer.
+- `limit` (optional, default `20`): Digits-only safe integer from `1` to `100`. Both values and the calculated offset `(page - 1) * limit` must be within `Number.MAX_SAFE_INTEGER`, or the endpoint returns `400`.
+- `entityType` (optional): `all`, `blog`, `event`, `user`, `site`, or `api_key`.
+- `search` (optional, max `100` chars): Literal case-insensitive substring filter (regex-escaped) matched across `entityTitle`, `actor.name`, `actor.email`, and `action`.
+
+**Response**
+
+Returns `{ data, meta }` where `meta` is `{ page, limit, total, totalPages }`. Each record includes `siteId` (`string | null`), embedded `actor` snapshot (`id`, `name`, `email`, `role`), `entityType`, `entityId`, `entityTitle`, `action` (`create`, `update`, `delete`, `publish`, `unpublish`, `restore`, `generate`, `rotate`, `revoke`), `details`, and `createdAt`.
+
+**Audited mutation routes & current scope**
+
+- **Site-scoped (`siteId`):** Blog (`POST`, `PUT`, `DELETE`), Event (`POST`, `PUT`, `DELETE`), Site API key issue/rotate/revoke, and Site webhook secret rotation (`action: 'rotate'`).
+- **Global (`siteId: null`):** User `POST` and `PUT` (including previous/next `role`, `status`, `siteIds`, and a `passwordChanged` boolean flag without password values), and Site `POST` and `PUT`.
+- **Not currently logged:** Authors, FAQs, whitepapers, release notes, media uploads, and FAQ submissions. `logAudit` runs best-effort outside write transactions so logging errors do not fail primary mutations.

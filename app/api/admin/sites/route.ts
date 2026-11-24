@@ -5,6 +5,7 @@ import { validationError } from '@/lib/http/errors';
 import { serializeSite } from '@/lib/admin/serializers';
 import { createSiteSchema } from '@/lib/validation/site';
 import Site from '@/models/Site';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,16 @@ export const POST = withAdmin(
       },
       createdBy: user.id,
       webhookUrl: input.webhookUrl ?? undefined,
+    });
+
+    await logAudit({
+      siteId: null,
+      actor: user,
+      entityType: 'site',
+      entityId: site._id.toString(),
+      entityTitle: site.name,
+      action: 'create',
+      details: { slug: site.slug, primaryDomain: site.primaryDomain },
     });
     return NextResponse.json(serializeSite(site), { status: 201 });
   },

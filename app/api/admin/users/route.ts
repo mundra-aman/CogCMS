@@ -7,6 +7,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { validationError } from '@/lib/http/errors';
 import { createUserSchema } from '@/lib/validation/user';
 import User from '@/models/User';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,20 @@ export const POST = withAdmin(
       ...input,
       passwordHash: await hashPassword(password),
       createdBy: user.id,
+    });
+    
+    await logAudit({
+      siteId: null,
+      actor: user,
+      entityType: 'user',
+      entityId: created._id.toString(),
+      entityTitle: created.name || created.email,
+      action: 'create',
+      details: {
+        email: created.email,
+        role: created.role,
+        siteIds: created.siteIds.map(String),
+      },
     });
     return NextResponse.json(serializeUser(created), { status: 201 });
   },

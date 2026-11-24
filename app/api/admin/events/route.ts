@@ -6,6 +6,7 @@ import { validationError } from '@/lib/http/errors';
 import { eventInputSchema } from '@/lib/validation/event';
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html';
 import { notifySiteWebhook } from '@/lib/webhook';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 export const GET = withAdmin(async (_req, { site }) => {
@@ -33,5 +34,15 @@ export const POST = withAdmin(async (req, { site, user }) => {
       slug: event.slug,
       id: event.id,
     });
+
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'event',
+    entityId: event.id,
+    entityTitle: event.title,
+    action: event.status === 'publish' ? 'publish' : 'create',
+    details: { slug: event.slug, status: event.status },
+  });
   return NextResponse.json(event, { status: 201 });
 });
