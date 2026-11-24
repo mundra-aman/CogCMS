@@ -9,6 +9,10 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { deliveryEventType, notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { logAudit } from '@/lib/audit/logger';
+import { createRevisionSnapshot, runInTransaction } from '@/lib/revisions/engine';
+import type { BlogRevisionSnapshot } from '@/models/Revision';
+import type { IBlog } from '@/models/Blog';
 
 export const dynamic = 'force-dynamic';
 type Params = { slug: string };
@@ -48,14 +52,69 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
   }
   if (parsed.data.status === 'publish' && !existing.publishedAt) update.publishedAt = new Date();
 
-  const blog = await Blog.findOneAndUpdate(
-    { _id: existing._id, siteId: site.id },
-    { $set: update },
-    { returnDocument: 'after', runValidators: true },
-  ).exec();
-  if (!blog) throw notFound('Blog');
+  let blog!: IBlog;
+  let eventType: ReturnType<typeof deliveryEventType> | null = null;
+
+  // Execute database writes and revision recording within an atomic transaction.
+  await runInTransaction(async (session) => {
+    const updated = await Blog.findOneAndUpdate(
+      { _id: existing._id, siteId: site.id },
+      { $set: update },
+      { returnDocument: 'after', runValidators: true, session },
+    ).exec();
+    if (!updated) throw notFound('Blog');
+    blog = updated;
+
+    eventType = deliveryEventType(existing.status, blog.status);
+
+    await logAudit({
+      siteId: site.id,
+      actor: user,
+      entityType: 'blog',
+      entityId: blog._id.toString(),
+      entityTitle: blog.title,
+      action:
+        existing.status !== blog.status
+          ? blog.status === 'publish'
+            ? 'publish'
+            : 'unpublish'
+          : 'update',
+      details: {
+        slug: blog.slug,
+        status: blog.status,
+        previousStatus: existing.status,
+      },
+      session,
+    });
+
+    const trigger =
+      blog.status === 'publish'
+        ? 'publish'
+        : existing.status === 'publish' && blog.status === 'draft'
+          ? 'unpublish'
+          : 'update';
+
+    await createRevisionSnapshot({
+      siteId: site.id,
+      entityType: 'blog',
+      entityId: blog._id,
+      author: user,
+      snapshot: blog.toObject() as unknown as BlogRevisionSnapshot,
+      trigger,
+      summary:
+        blog.status === 'publish'
+          ? existing.status === 'publish'
+            ? 'Published update'
+            : 'Published blog post'
+          : existing.status === 'publish'
+            ? 'Unpublished to draft'
+            : 'Updated blog content',
+      session,
+    });
+  });
+
+  // External effects execute only after successful commit.
   invalidateRelatedPosts(site.id);
-  const eventType = deliveryEventType(existing.status, blog.status);
   if (eventType) {
     notifySiteWebhook(site.id, {
       type: eventType,
@@ -67,7 +126,7 @@ export const PUT = withAdmin<Params>(async (req, { params, user, site }) => {
   return NextResponse.json(blog);
 });
 
-export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
+export const DELETE = withAdmin<Params>(async (_req, { params, user, site }) => {
   const { slug } = await params;
   await connectToDatabase();
   const blog = await Blog.findOneAndDelete({ slug, siteId: site.id }).exec();
@@ -81,5 +140,14 @@ export const DELETE = withAdmin<Params>(async (_req, { params, site }) => {
       id: blog._id.toString(),
     });
   }
+  await logAudit({
+    siteId: site.id,
+    actor: user,
+    entityType: 'blog',
+    entityId: blog._id.toString(),
+    entityTitle: blog.title,
+    action: 'delete',
+    details: { slug: blog.slug },
+  });
   return NextResponse.json({ message: 'Deleted successfully' });
 });

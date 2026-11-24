@@ -1,6 +1,39 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
-const EventSchema = new Schema(
+export type EventFormat = 'online' | 'in-person' | 'hybrid';
+export type TicketPriceType = 'free' | 'paid';
+
+export interface IEvent extends Document<Types.ObjectId> {
+  siteId: Types.ObjectId;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  imageUrl: string;
+  imageAlt: string;
+  startAt: Date;
+  endAt: Date;
+  timeZone: string;
+  format: EventFormat;
+  location: string;
+  onlineUrl: string;
+  registrationUrl: string;
+  ticketPriceType?: TicketPriceType;
+  ticketPriceAmount: string;
+  ticketPriceCurrency: string;
+  organizer: string;
+  speakers: string;
+  metaTitle: string;
+  metaDescription: string;
+  status: 'draft' | 'publish';
+  publishedAt: Date | null;
+  createdBy: Types.ObjectId | null;
+  updatedBy: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const EventSchema = new Schema<IEvent>(
   {
     siteId: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
     title: { type: String, required: true },
@@ -37,4 +70,6 @@ const EventSchema = new Schema(
 EventSchema.index({ siteId: 1, slug: 1 }, { unique: true });
 EventSchema.index({ siteId: 1, status: 1, startAt: 1 });
 
-export default mongoose.models.Event || mongoose.model('Event', EventSchema);
+const Event: Model<IEvent> = mongoose.models.Event || mongoose.model<IEvent>('Event', EventSchema);
+
+export default Event;

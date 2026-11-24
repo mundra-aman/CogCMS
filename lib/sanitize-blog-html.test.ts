@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from 'node-html-parser';
-import { sanitizeBlogHtml } from './sanitize-blog-html';
+import { sanitizeBlogHtml, normalizeVideoEmbedUrl } from './sanitize-blog-html';
 
 describe('sanitizeBlogHtml', () => {
   it('returns an empty string for empty input', () => {
@@ -109,5 +109,72 @@ describe('sanitizeBlogHtml', () => {
     const root = parse(output);
     expect(root.querySelector('img')).toBeNull();
     expect(root.text).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  describe('normalizeVideoEmbedUrl', () => {
+    it('converts standard YouTube watch links to embed URLs', () => {
+      expect(normalizeVideoEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      );
+    });
+
+    it('converts youtu.be shortlinks and shorts to embed URLs', () => {
+      expect(normalizeVideoEmbedUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      );
+      expect(normalizeVideoEmbedUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      );
+    });
+
+    it('converts standard Vimeo share links and channel URLs to player embed URLs', () => {
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/76979871')).toBe(
+        'https://player.vimeo.com/video/76979871',
+      );
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/channels/staffpicks/76979871')).toBe(
+        'https://player.vimeo.com/video/76979871',
+      );
+      expect(normalizeVideoEmbedUrl('https://player.vimeo.com/video/76979871')).toBe(
+        'https://player.vimeo.com/video/76979871',
+      );
+    });
+
+    it('preserves unlisted Vimeo privacy hashes from path or query parameter', () => {
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/76979871/abcdef1234')).toBe(
+        'https://player.vimeo.com/video/76979871?h=abcdef1234',
+      );
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/76979871?h=abcdef1234')).toBe(
+        'https://player.vimeo.com/video/76979871?h=abcdef1234',
+      );
+      expect(normalizeVideoEmbedUrl('https://player.vimeo.com/video/76979871?h=abcdef1234')).toBe(
+        'https://player.vimeo.com/video/76979871?h=abcdef1234',
+      );
+      expect(normalizeVideoEmbedUrl('vimeo.com/76979871?h=abcdef1234#t=30s')).toBe(
+        'https://player.vimeo.com/video/76979871?h=abcdef1234',
+      );
+    });
+
+    it('drops malformed or non-alphanumeric Vimeo privacy hashes safely', () => {
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/76979871?h=bad<script>')).toBe(
+        'https://player.vimeo.com/video/76979871',
+      );
+      expect(normalizeVideoEmbedUrl('https://vimeo.com/76979871?h=%E0%A4%A')).toBe(
+        'https://player.vimeo.com/video/76979871',
+      );
+    });
+
+    it('returns null for unsupported video providers or arbitrary links', () => {
+      expect(normalizeVideoEmbedUrl('https://dailymotion.com/video/x7tgad0')).toBeNull();
+      expect(normalizeVideoEmbedUrl('https://example.com/videos/test.mp4')).toBeNull();
+      expect(normalizeVideoEmbedUrl('not a url')).toBeNull();
+      expect(normalizeVideoEmbedUrl('')).toBeNull();
+    });
+
+    it('allows converted Vimeo embeds to pass through HTML sanitization intact', () => {
+      const vimeoUrl = normalizeVideoEmbedUrl('https://vimeo.com/76979871?h=abcdef1234');
+      const sanitized = sanitizeBlogHtml(`<p><iframe src="${vimeoUrl}"></iframe></p>`);
+      expect(sanitized).toContain('src="https://player.vimeo.com/video/76979871?h=abcdef1234"');
+      expect(sanitized).toContain('allowfullscreen');
+    });
   });
 });

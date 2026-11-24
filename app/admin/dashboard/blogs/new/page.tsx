@@ -26,6 +26,8 @@ import { makeFormStateKey, useSessionFormState } from '@/lib/admin/session-form-
 import { useLeaveGuard } from '@/lib/admin/use-leave-guard';
 import { useEditorBaseline } from '@/lib/admin/use-editor-baseline';
 import { uploadImageDirect } from '@/lib/media/upload-client';
+import { RevisionDrawer } from '@/components/admin/RevisionDrawer';
+import { normalizeVideoEmbedUrl } from '@/lib/sanitize-blog-html';
 import {
   CLIENT_UPLOAD_OUTPUT_TYPE,
   CLIENT_UPLOAD_TARGET_BYTES,
@@ -478,7 +480,7 @@ function ShortcutsPanel({ onClose }: { onClose: () => void }) {
 const SLUG_MAX_LENGTH = 160;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-// ── Main editor form ────────────────────────────
+// Main editor form
 function EditorForm() {
   const site = useSite();
   const searchParams = useSearchParams();
@@ -501,6 +503,8 @@ function EditorForm() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [slugInvalid, setSlugInvalid] = useState(false);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
+  const [showRevisions, setShowRevisions] = useState(false);
 
   // Tag Menu State
   const [showTagMenu, setShowTagMenu] = useState(false);
@@ -578,6 +582,7 @@ function EditorForm() {
           setFormData(hydrated);
           setContent(data.content || '');
           setLastPublishedAt(data.status === 'publish' ? data.updatedAt || null : null);
+          setEditingBlogId(data._id || null);
           setSlugManuallyEdited(true);
           initialSnapshotRef.current = JSON.stringify({
             ...hydrated,
@@ -808,6 +813,10 @@ function EditorForm() {
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
           return 'The link must start with http:// or https://';
         }
+        const normalized = normalizeVideoEmbedUrl(value);
+        if (!normalized) {
+          return 'Only YouTube and Vimeo video links are supported.';
+        }
         return null;
       },
       onSubmit: ({ url }) => insertEmbedUrl(url.trim()),
@@ -815,9 +824,8 @@ function EditorForm() {
   };
 
   const insertEmbedUrl = (url: string) => {
-    let embedUrl = url;
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+    const embedUrl = normalizeVideoEmbedUrl(url);
+    if (!embedUrl) return;
     const quill = (quillRef.current as any)?.getEditor?.();
     if (quill) {
       const index = restoreSelection(quill);
@@ -1195,6 +1203,15 @@ function EditorForm() {
           >
             Save draft
           </button>
+          {editingBlogId && (
+            <button
+              type="button"
+              onClick={() => setShowRevisions(true)}
+              className="rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              Revisions
+            </button>
+          )}
           <div className="relative">
             <button
               type="button"
@@ -1800,6 +1817,62 @@ function EditorForm() {
         <PromptDialog request={promptRequest} onClose={() => setPromptRequest(null)} />
       )}
       <ConfirmDialog {...leaveGuard.dialogProps} />
+      <RevisionDrawer
+        isOpen={showRevisions}
+        onClose={() => setShowRevisions(false)}
+        entityType="blog"
+        entityId={editingBlogId}
+        currentDraft={{
+          ...formData,
+          content,
+        }}
+        onRestore={(entity) => {
+          editorBaseline.reset();
+          const restoredFormData = {
+            ...formData,
+            title: String(entity.title ?? ''),
+            slug: String(entity.slug ?? formData.slug),
+            excerpt: String(entity.excerpt ?? ''),
+            imageUrl: String(entity.imageUrl ?? ''),
+            imageAlt: String(entity.imageAlt ?? ''),
+            tag: String(entity.tag || (Array.isArray(entity.tags) && entity.tags[0]) || 'Insights'),
+            category: String(entity.category || entity.tag || 'Insights'),
+            tags:
+              Array.isArray(entity.tags) && entity.tags.length > 0
+                ? (entity.tags as string[])
+                : entity.tag
+                  ? [String(entity.tag)]
+                  : [],
+            isFeatured: Boolean(entity.isFeatured),
+            metaTitle: String(entity.metaTitle ?? ''),
+            metaDescription: String(entity.metaDescription ?? ''),
+            keywords: String(entity.keywords ?? ''),
+            createdAt: entity.createdAt
+              ? new Date(entity.createdAt as string).toISOString().substring(0, 10)
+              : formData.createdAt,
+            authorId: entity.authorId ? String(entity.authorId) : null,
+            faqs: Array.isArray(entity.faqs) ? (entity.faqs as any) : [],
+            keyTakeaways: Array.isArray(entity.keyTakeaways)
+              ? (entity.keyTakeaways as string[])
+              : [],
+            relatedSlugs: Array.isArray(entity.relatedSlugs) ? (entity.relatedSlugs as string[]) : [],
+            tocOverrides: Array.isArray(entity.tocOverrides) ? (entity.tocOverrides as TocOverride[]) : [],
+          };
+          const restoredContent = entity.content !== undefined ? String(entity.content) : content;
+
+          setFormData(restoredFormData);
+          setContent(restoredContent);
+          setLastPublishedAt(null);
+
+          initialSnapshotRef.current = JSON.stringify({
+            ...restoredFormData,
+            content: restoredContent,
+          });
+
+          clearFormState();
+          showToast('success', 'Version restored as draft successfully');
+        }}
+      />
     </div>
   );
 }

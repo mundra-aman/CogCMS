@@ -35,6 +35,7 @@ export function AdminNavigation({
           ? [
               ['Sites', '/admin/dashboard/sites'],
               ['Users', '/admin/dashboard/users'],
+              ['Audit log', '/admin/dashboard/audit-logs'],
             ]
           : []),
         ['Connect a website', '/admin/dashboard/connect'],

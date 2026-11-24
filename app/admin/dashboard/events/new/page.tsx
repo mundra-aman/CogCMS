@@ -8,6 +8,7 @@ import { useSite } from '@/components/admin/site-provider';
 import { uploadImageDirect } from '@/lib/media/upload-client';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { useLeaveGuard } from '@/lib/admin/use-leave-guard';
+import { useEditorBaseline } from '@/lib/admin/use-editor-baseline';
 import {
   makeFormStateKey,
   useSessionFormState,
@@ -16,6 +17,7 @@ import {
 import { useToast } from '@/components/admin/toast-provider';
 import { TOAST_MESSAGES } from '@/components/admin/toast-messages';
 import { eventSlugSchema, optionalEventUrlSchema } from '@/lib/validation/event';
+import { RevisionDrawer } from '@/components/admin/RevisionDrawer';
 import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -393,6 +395,8 @@ function Editor() {
   const [currencySearch, setCurrencySearch] = useState('');
   const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(empty));
   const [loading, setLoading] = useState(!!editSlug);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [showRevisions, setShowRevisions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<
@@ -456,6 +460,7 @@ function Editor() {
         };
         setForm(loaded);
         setSavedSnapshot(JSON.stringify(loaded));
+        setEditingEventId(data._id || data.id || null);
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
@@ -470,6 +475,7 @@ function Editor() {
     return () => controller.abort();
   }, [editSlug, site?.id, showToast]);
   const isDirty = !loading && JSON.stringify(form) !== savedSnapshot;
+  const editorBaseline = useEditorBaseline(editSlug);
   const storageKey = site?.id ? makeFormStateKey(site.id, 'event', editSlug) : null;
   const { clear: clearFormState } = useSessionFormState({
     storageKey,
@@ -477,6 +483,7 @@ function Editor() {
     isDirty,
     ready: !loading,
     onRestore: (saved) => {
+      editorBaseline.stop();
       const fields = Object.fromEntries(
         Object.keys(empty)
           .filter((key) => {
@@ -693,6 +700,16 @@ function Editor() {
           >
             Save draft
           </button>
+          {editingEventId && (
+            <button
+              type="button"
+              disabled={busy || loading}
+              onClick={() => setShowRevisions(true)}
+              className="rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              Revisions
+            </button>
+          )}
           <button
             disabled={busy || loading}
             onClick={() => save('publish')}
@@ -889,7 +906,18 @@ function Editor() {
                   <ReactQuill
                     theme="snow"
                     value={form.content}
-                    onChange={(value) => set('content', value)}
+                    onChange={(value: string, _delta: unknown, source: string) => {
+                      set('content', value);
+                      if (editorBaseline.acceptsNormalisation(source)) {
+                        setSavedSnapshot((snapshot) => {
+                          try {
+                            return JSON.stringify({ ...JSON.parse(snapshot), content: value });
+                          } catch {
+                            return snapshot;
+                          }
+                        });
+                      }
+                    }}
                     modules={modules}
                     useSemanticHTML={false}
                     placeholder="Tell people what to expect…"
@@ -1088,6 +1116,50 @@ function Editor() {
         </div>
       )}
       <ConfirmDialog {...leaveGuard.dialogProps} />
+      <RevisionDrawer
+        isOpen={showRevisions}
+        onClose={() => setShowRevisions(false)}
+        entityType="event"
+        entityId={editingEventId}
+        currentDraft={{
+          ...form,
+        }}
+        onRestore={(entity) => {
+          editorBaseline.reset();
+          const tz = String(entity.timeZone || form.timeZone || 'UTC');
+          const restored = {
+            ...form,
+            title: String(entity.title ?? form.title),
+            slug: String(entity.slug ?? form.slug),
+            summary: String(entity.summary ?? form.summary),
+            content: String(entity.content ?? form.content),
+            location: String(entity.location ?? form.location),
+            imageUrl: String(entity.imageUrl ?? form.imageUrl),
+            imageAlt: String(entity.imageAlt ?? form.imageAlt),
+            format: (entity.format as Format) || form.format,
+            timeZone: tz,
+            onlineUrl: String(entity.onlineUrl ?? (entity as any).onlineMeetingUrl ?? form.onlineUrl),
+            registrationUrl: String(entity.registrationUrl ?? form.registrationUrl),
+            ticketPriceType: (entity.ticketPriceType as any) || form.ticketPriceType,
+            ticketPriceAmount: String(entity.ticketPriceAmount ?? form.ticketPriceAmount),
+            ticketPriceCurrency: String(entity.ticketPriceCurrency ?? form.ticketPriceCurrency),
+            organizer: String(entity.organizer ?? form.organizer),
+            speakers: String(entity.speakers ?? form.speakers),
+            metaTitle: String(entity.metaTitle ?? form.metaTitle),
+            metaDescription: String(entity.metaDescription ?? form.metaDescription),
+            startAt: entity.startAt
+              ? localParts(new Date(entity.startAt as string), tz)
+              : form.startAt,
+            endAt: entity.endAt
+              ? localParts(new Date(entity.endAt as string), tz)
+              : form.endAt,
+          };
+          setForm(restored);
+          setSavedSnapshot(JSON.stringify(restored));
+          clearFormState();
+          showToast('success', 'Version restored as draft successfully');
+        }}
+      />
     </section>
   );
 }

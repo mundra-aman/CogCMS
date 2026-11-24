@@ -9,6 +9,10 @@ import { renderBlogSnapshot } from '@/lib/render/blog';
 import { invalidateRelatedPosts } from '@/lib/blog-content/related-index';
 import { notifySiteWebhook } from '@/lib/webhook';
 import { assertBlogAuthorIsUsable } from '@/lib/admin/blog-author';
+import { logAudit } from '@/lib/audit/logger';
+import { createRevisionSnapshot, runInTransaction } from '@/lib/revisions/engine';
+import type { BlogRevisionSnapshot } from '@/models/Revision';
+import type { IBlog } from '@/models/Blog';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,16 +38,47 @@ export const POST = withAdmin(async (req, { user, site }) => {
     siteId: site.id,
     blogStatus: status,
   });
-  const blog = await Blog.create({
-    ...data,
-    content,
-    rendered,
-    status,
-    publishedAt: status === 'publish' ? new Date() : null,
-    siteId: site.id,
-    createdBy: user.id,
-    updatedBy: user.id,
+
+  let blog!: IBlog;
+
+  // Execute database writes and revision recording within an atomic transaction.
+  await runInTransaction(async (session) => {
+    const blogDoc = new Blog({
+      ...data,
+      content,
+      rendered,
+      status,
+      publishedAt: status === 'publish' ? new Date() : null,
+      siteId: site.id,
+      createdBy: user.id,
+      updatedBy: user.id,
+    });
+    blog = await blogDoc.save({ session });
+
+    await logAudit({
+      siteId: site.id,
+      actor: user,
+      entityType: 'blog',
+      entityId: blog._id.toString(),
+      entityTitle: blog.title,
+      action: blog.status === 'publish' ? 'publish' : 'create',
+      details: { slug: blog.slug, status: blog.status },
+      session,
+    });
+
+    await createRevisionSnapshot({
+      siteId: site.id,
+      entityType: 'blog',
+      entityId: blog._id,
+      author: user,
+      snapshot: blog.toObject() as unknown as BlogRevisionSnapshot,
+      trigger: blog.status === 'publish' ? 'publish' : 'create',
+      summary: blog.status === 'publish' ? 'Initial published post' : 'Initial draft created',
+      session,
+    });
   });
+
+  // External effects execute only after successful commit.
   invalidateRelatedPosts(site.id);
   if (blog.status === 'publish') {
     notifySiteWebhook(site.id, {
@@ -53,5 +88,6 @@ export const POST = withAdmin(async (req, { user, site }) => {
       id: blog._id.toString(),
     });
   }
+
   return NextResponse.json(blog, { status: 201 });
 });

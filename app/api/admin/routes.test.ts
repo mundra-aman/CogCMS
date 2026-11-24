@@ -26,6 +26,7 @@ describe('every /api/admin route rejects anonymous requests', () => {
     expect(entries.map(([p]) => p).sort()).toEqual([
       './api-keys/[id]/rotate/route.ts',
       './api-keys/[id]/route.ts',
+      './audit-logs/route.ts',
       './authors/[slug]/route.ts',
       './authors/route.ts',
       './blogs/[slug]/route.ts',
@@ -39,6 +40,9 @@ describe('every /api/admin route rejects anonymous requests', () => {
       './newsletter-subscribers/route.ts',
       './release-notes/[slug]/route.ts',
       './release-notes/route.ts',
+      './revisions/[id]/restore/route.ts',
+      './revisions/[id]/route.ts',
+      './revisions/route.ts',
       './session/route.ts',
       './sites/[siteId]/api-keys/route.ts',
       './sites/[siteId]/route.ts',

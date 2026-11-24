@@ -8,6 +8,7 @@ import { readJson, withAdmin } from '@/lib/http/admin-handler';
 import { notFound, validationError } from '@/lib/http/errors';
 import { updateUserSchema, userAssignmentSchema } from '@/lib/validation/user';
 import User from '@/models/User';
+import { logAudit } from '@/lib/audit/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export const GET = withAdmin<{ userId: string }>(
 );
 
 export const PUT = withAdmin<{ userId: string }>(
-  async (req, { params }) => {
+  async (req, { params, user }) => {
     const { userId } = await params;
     assertUserId(userId);
     const parsed = updateUserSchema.safeParse(await readJson(req));
@@ -49,10 +50,31 @@ export const PUT = withAdmin<{ userId: string }>(
       status: parsed.data.status ?? target.status,
     });
 
+    const previousRole = target.role;
+    const previousStatus = target.status;
+    const previousSiteIds = target.siteIds.map(String);
+
     const { password, ...updates } = parsed.data;
     target.set(updates);
     if (password) target.passwordHash = await hashPassword(password);
     await target.save();
+
+    await logAudit({
+      siteId: null,
+      actor: user,
+      entityType: 'user',
+      entityId: target._id.toString(),
+      entityTitle: target.name || target.email,
+      action: 'update',
+      details: {
+        email: target.email,
+        role: { previous: previousRole, next: target.role },
+        status: { previous: previousStatus, next: target.status },
+        siteIds: { previous: previousSiteIds, next: target.siteIds.map(String) },
+        passwordChanged: Boolean(password),
+      },
+    });
+
     return NextResponse.json(serializeUser(target));
   },
   { admin: true, site: false },

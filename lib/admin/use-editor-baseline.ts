@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef } from 'react';
 export function useEditorBaseline(resetKey: string | null): {
   acceptsNormalisation: (source: string) => boolean;
   stop: () => void;
+  reset: () => void;
 } {
   const acceptingRef = useRef(true);
 
@@ -30,6 +31,9 @@ export function useEditorBaseline(resetKey: string | null): {
   const stop = useCallback(() => {
     acceptingRef.current = false;
   }, []);
+  const reset = useCallback(() => {
+    acceptingRef.current = true;
+  }, []);
 
-  return { acceptsNormalisation, stop };
+  return { acceptsNormalisation, stop, reset };
 }

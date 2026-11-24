@@ -113,3 +113,37 @@ export function sanitizeBlogHtml(html: string): string {
   if (!html) return '';
   return parse(html, { comment: false }).childNodes.map(serialize).join('');
 }
+
+/**
+ * Normalizes video URLs from YouTube and Vimeo into safe, approved embed URLs.
+ * - YouTube watch, shorts, or shortlinks -> https://www.youtube.com/embed/<id>
+ * - Vimeo share links, channels, and unlisted links -> https://player.vimeo.com/video/<id>(?h=<hash>)
+ * Returns null if the URL is empty or does not belong to an approved video provider.
+ */
+export function normalizeVideoEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+
+  // YouTube embeds: watch?v=, youtu.be/, embed/, shorts/
+  const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/i);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+
+  // Vimeo embeds: handles standard numeric IDs, channels, and unlisted /h/ or ?h= hashes
+  // e.g. https://vimeo.com/76979871, https://vimeo.com/76979871/abcdef1234, https://player.vimeo.com/video/76979871?h=abcdef1234
+  const vimeoMatch = trimmed.match(/(?:player\.)?vimeo\.com\/(?:[a-z0-9_-]+\/)*(\d+)(?:\/([a-zA-Z0-9]+))?/i);
+  if (vimeoMatch) {
+    const id = vimeoMatch[1];
+    let hash: string | undefined = vimeoMatch[2];
+    if (!hash) {
+      // Parse the query substring directly so protocol-less URLs work without swallowing URL parser errors.
+      const queryPart = trimmed.split('?')[1]?.split('#')[0];
+      const queryHash = queryPart ? new URLSearchParams(queryPart).get('h') : null;
+      if (queryHash && /^[a-zA-Z0-9]+$/.test(queryHash)) {
+        hash = queryHash;
+      }
+    }
+    return hash ? `https://player.vimeo.com/video/${id}?h=${hash}` : `https://player.vimeo.com/video/${id}`;
+  }
+
+  return null;
+}
